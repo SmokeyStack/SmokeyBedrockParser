@@ -69,55 +69,58 @@ std::string hex_to_string(const std::string& s) {
 int main(int argc, char* argv[]) {
     std::vector<char>::iterator it;
     size_t length{ReadBytes(argv[1]).size()};
-    char yoyo[2048]{};
+    char nbt_bytes[2048]{};
+    int string_size{-1};
     int count{0};
-
+    int key_count{0};
     std::string root_name{};
+    std::array key_name = {"name", "value"};
+
+    for (it = ReadBytes(argv[1]).begin(); it != ReadBytes(argv[1]).end();
+         it++) {
+        nbt_bytes[count] = *it;
+        count++;
+    }
+
+    for (int a = 0; a < length; a++) printf("%02x", nbt_bytes[a]);
+
+    std::cout << "\t|\tOriginal Bytes\n---\n";
 
     if (ReadBytes(argv[1])[0] == 0x0a) {
-        for (it = ReadBytes(argv[1]).begin(); it != ReadBytes(argv[1]).end();
-             it++) {
-            yoyo[count] = *it;
-            count++;
-        }
-
-        int temp{};
-        for (int a = 0; a < length; a++) printf("%02x", yoyo[a]);
-        char* pc = (char*)std::memchr(yoyo, 0x00, sizeof yoyo);
-        if (pc != nullptr) printf("\t|\tFound it at %d\n", pc - yoyo + 1);
-        temp = ReadBytes(argv[1])[pc - yoyo + 1];
-        for (size_t a = pc - yoyo + 2; a < pc - yoyo + 2 + temp; a++)
-            root_name += ReadBytes(argv[1])[a];
-
-        for (size_t a = 0; a < pc - yoyo + temp; a++) {
-            yoyo[a] = '\b';
-        }
-        temp = 0;
-        std::string name{};
-        for (int a = 0; a < length; a++) printf("%02x", yoyo[a]);
-        pc = (char*)std::memchr(yoyo, 0x00, sizeof yoyo);
-        if (pc != nullptr) printf("\t|\tFound it at %d\n", pc - yoyo + 1);
-        temp = ReadBytes(argv[1])[pc - yoyo + 1];
-        for (size_t a = pc - yoyo + 2; a < pc - yoyo + 2 + temp; a++)
-            name += ReadBytes(argv[1])[a];
-        std::string tag{getTag(ReadBytes(argv[1]), pc - yoyo - 1)};
-
-        for (size_t a = 0; a < pc - yoyo + temp; a++) {
-            yoyo[a] = '\b';
-        }
-        temp = 0;
         std::string value{};
-        for (int a = 0; a < length; a++) printf("%02x", yoyo[a]);
-        pc = (char*)std::memchr(yoyo, 0x00, sizeof yoyo);
-        if (pc != nullptr) printf("\t|\tFound it at %d\n", pc - yoyo + 1);
-        temp = ReadBytes(argv[1])[pc - yoyo + 1];
-        for (size_t a = pc - yoyo + 2; a < pc - yoyo + 2 + temp; a++)
-            value += ReadBytes(argv[1])[a];
+        char* pc = (char*)std::memchr(nbt_bytes, 0x00, sizeof nbt_bytes);
 
-        j["name"] = root_name;
-        // j["test"] = {{{"name", "val"}}};
-        // j["test"][0].push_back({"value", "val"});
-        j["value"] = {{{"tag_type", tag}, {"name", name}, {"value", value}}};
+        while ((pc - nbt_bytes + 3 + string_size) < count) {
+            value = "";
+            for (int a = 0; a < length; a++) printf("%02x", nbt_bytes[a]);
+
+            pc = (char*)std::memchr(nbt_bytes, 0x00, sizeof nbt_bytes);
+            string_size = ReadBytes(argv[1])[pc - nbt_bytes + 1];
+
+            if (pc != nullptr)
+                printf("\t|\tFound at: %d\t|\tString Size: %d\n",
+                       pc - nbt_bytes + 1, string_size);
+
+            if ((pc - nbt_bytes + 1) == 2) {
+                for (size_t a = pc - nbt_bytes + 2;
+                     a < pc - nbt_bytes + 2 + string_size; a++)
+                    root_name += ReadBytes(argv[1])[a];
+
+                j["name"] = root_name;
+                std::string tag{getTag(ReadBytes(argv[1]),
+                                       pc - nbt_bytes + 2 + string_size)};
+                j["value"] = {{{"tag_type", tag}}};
+            } else {
+                for (size_t a = pc - nbt_bytes + 2;
+                     a < pc - nbt_bytes + 2 + string_size; a++)
+                    value += ReadBytes(argv[1])[a];
+                j["value"][0].push_back({key_name[key_count], value});
+                key_count++;
+            }
+
+            for (size_t a = 0; a < pc - nbt_bytes + string_size; a++)
+                nbt_bytes[a] = '\b';
+        }
     }
 
     std::cout << j.dump(4);
