@@ -67,16 +67,16 @@ std::string hex_to_string(const std::string& s) {
 }
 
 int main(int argc, char* argv[]) {
-    std::vector<char>::iterator it;
-    size_t length{ReadBytes(argv[1]).size()};
-    char nbt_bytes[2048]{};
     int string_size{-1};
     int count{0};
     int key_count{0};
+    size_t length{ReadBytes(argv[1]).size()};
+    char nbt_bytes[2048]{};
     std::string root_name{};
+    std::string value{};
     std::array key_name = {"name", "value"};
 
-    for (it = ReadBytes(argv[1]).begin(); it != ReadBytes(argv[1]).end();
+    for (auto it = ReadBytes(argv[1]).begin(); it != ReadBytes(argv[1]).end();
          it++) {
         nbt_bytes[count] = *it;
         count++;
@@ -84,13 +84,13 @@ int main(int argc, char* argv[]) {
 
     for (int a = 0; a < length; a++) printf("%02x", nbt_bytes[a]);
 
-    std::cout << "\t|\tOriginal Bytes\n---\n";
+    std::cout << "\t|\tOriginal Bytes\t|\t" << count << "\n---\n";
 
     if (ReadBytes(argv[1])[0] == 0x0a) {
-        std::string value{};
         char* pc = (char*)std::memchr(nbt_bytes, 0x00, sizeof nbt_bytes);
 
         while ((pc - nbt_bytes + 3 + string_size) < count) {
+            if (key_count > 1) key_count = 0;
             value = "";
             for (int a = 0; a < length; a++) printf("%02x", nbt_bytes[a]);
 
@@ -114,6 +114,7 @@ int main(int argc, char* argv[]) {
                 for (size_t a = pc - nbt_bytes + 2;
                      a < pc - nbt_bytes + 2 + string_size; a++)
                     value += ReadBytes(argv[1])[a];
+                std::cout << "The value is: " << value << ".\n";
                 j["value"][0].push_back({key_name[key_count], value});
                 key_count++;
             }
