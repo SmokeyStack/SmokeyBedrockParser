@@ -55,6 +55,17 @@ int32_t readInt(std::vector<char> payload, int location) {
     return u.i;
 }
 
+int8_t readByte(std::vector<char> payload, int location) {
+    union {
+        char c[1];
+        int8_t b;
+    } u;
+
+    u.c[0] = payload[location];
+
+    return u.b;
+}
+
 void readPayLoad(std::vector<char> payload, int location) {
     // printf("\n-----\n");
     printf("\n-----\n 0x%02x - ", payload[location]);
@@ -85,6 +96,12 @@ void readPayLoad(std::vector<char> payload, int location) {
         std::cout << readTagName(payload, location, a);
         printf(": %d", readInt(payload, location + 3 + a));
         readPayLoad(payload, location + 7 + a);
+    }
+    if (payload[location] == 0x01) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a);
+        printf(": %d", readByte(payload, location + 3 + a));
+        readPayLoad(payload, location + 4 + a);
     }
 }
 int main(int argc, char* argv[]) {
