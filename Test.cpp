@@ -40,6 +40,21 @@ float readGloat(std::vector<char> payload, int location) {
     return u.f;
 }
 
+int32_t readInt(std::vector<char> payload, int location) {
+    union {
+        char c[4];
+        int32_t i;
+    } u;
+
+    int count{0};
+    for (int a = 3; a > 0; a--) {
+        u.c[a] = payload[location + count];
+        count++;
+    }
+
+    return u.i;
+}
+
 void readPayLoad(std::vector<char> payload, int location) {
     // printf("\n-----\n");
     printf("\n-----\n 0x%02x - ", payload[location]);
@@ -62,7 +77,13 @@ void readPayLoad(std::vector<char> payload, int location) {
     if (payload[location] == 0x05) {
         int a = (int)payload[location + 2];
         std::cout << readTagName(payload, location, a);
-        printf("%f", readGloat(payload, location + 3 + a));
+        printf(": %f", readGloat(payload, location + 3 + a));
+        readPayLoad(payload, location + 7 + a);
+    }
+    if (payload[location] == 0x03) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a);
+        printf(": %d", readInt(payload, location + 3 + a));
         readPayLoad(payload, location + 7 + a);
     }
 }
