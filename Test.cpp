@@ -23,7 +23,22 @@ std::string readTagName(std::vector<char> payload, int location, size_t size) {
     for (auto it = 0; it < size; it++) test += payload[location + 3 + it];
     printf("%d - ", size);
     return test;
-};
+}
+
+float readGloat(std::vector<char> payload, int location) {
+    union {
+        char c[4];
+        float f;
+    } u;
+
+    int count{0};
+    for (int a = 3; a > 0; a--) {
+        u.c[a] = payload[location + count];
+        count++;
+    }
+
+    return u.f;
+}
 
 void readPayLoad(std::vector<char> payload, int location) {
     // printf("\n-----\n");
@@ -43,6 +58,12 @@ void readPayLoad(std::vector<char> payload, int location) {
         int b = (int)payload[location + 4 + a];
         std::cout << ": " << readTagName(payload, location + a + 2, b);
         readPayLoad(payload, location + 5 + a + b);
+    }
+    if (payload[location] == 0x05) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a);
+        printf("%f", readGloat(payload, location + 3 + a));
+        readPayLoad(payload, location + 7 + a);
     }
 }
 int main(int argc, char* argv[]) {
