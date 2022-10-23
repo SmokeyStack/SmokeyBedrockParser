@@ -21,10 +21,12 @@ static std::vector<char> ReadBytes(char const* filename) {
 std::string readTagName(std::vector<char> payload, int location, size_t size) {
     std::string test{};
     for (auto it = 0; it < size; it++) test += payload[location + 3 + it];
+    printf("%d - ", size);
     return test;
 };
 
 void readPayLoad(std::vector<char> payload, int location) {
+    printf("\n-----\n 0x%02x - ", payload[location]);
     if (payload[location] == 0x0a) {
         int a = (int)payload[location + 2];
         std::cout << readTagName(payload, location, a);
@@ -34,7 +36,7 @@ void readPayLoad(std::vector<char> payload, int location) {
         int a = (int)payload[location + 2];
         std::cout << readTagName(payload, location, a);
         int b = (int)payload[location + 4 + a];
-        std::cout << readTagName(payload, location + 6, b);
+        std::cout << ": " << readTagName(payload, location + a + 2, b);
         readPayLoad(payload, location + 5 + a + b);
     }
 }
