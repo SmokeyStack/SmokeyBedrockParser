@@ -26,7 +26,12 @@ std::string readTagName(std::vector<char> payload, int location, size_t size) {
 };
 
 void readPayLoad(std::vector<char> payload, int location) {
+    // printf("\n-----\n");
     printf("\n-----\n 0x%02x - ", payload[location]);
+    if (payload[location] == 0x00 && location <= payload.size()) {
+        // std::cout << location + 1;
+        readPayLoad(payload, location + 1);
+    }
     if (payload[location] == 0x0a) {
         int a = (int)payload[location + 2];
         std::cout << readTagName(payload, location, a);
