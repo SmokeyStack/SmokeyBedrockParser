@@ -96,6 +96,18 @@ double readDouble(std::vector<char> payload, int location) {
     return u.f;
 }
 
+int16_t readShort(std::vector<char> payload, int location) {
+    union {
+        char c[2];
+        int16_t s;
+    } u;
+
+    u.c[1] = payload[location];
+    u.c[0] = payload[location + 1];
+
+    return u.s;
+}
+
 void readPayLoad(std::vector<char> payload, int location) {
     // printf("\n-----\n");
     printf("\n-----\n 0x%02x - ", payload[location]);
@@ -145,6 +157,12 @@ void readPayLoad(std::vector<char> payload, int location) {
         std::cout << ": " << readDouble(payload, location + 3 + a);
         readPayLoad(payload, location + 11 + a);
     }
+    if (payload[location] == 0x02) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a);
+        std::cout << ": " << readShort(payload, location + 3 + a);
+        readPayLoad(payload, location + 5 + a);
+    }
     if (payload[location] == 0x09) {
         int a = (int)payload[location + 2];
         std::cout << readTagName(payload, location, a) << "\n";
@@ -166,6 +184,7 @@ void readPayLoad(std::vector<char> payload, int location) {
                     b = (int)payload[location + 9 + a + loc];
                     loc = loc + 2 + b;
                 }
+                readPayLoad(payload, location + 8 + a + loc);
                 break;
             default:
                 break;
