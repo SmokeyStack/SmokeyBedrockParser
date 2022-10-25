@@ -67,18 +67,20 @@ int8_t readByte(std::vector<char> payload, int location) {
 }
 
 int64_t readLong(std::vector<char> payload, int location) {
-    union {
-        char c[8];
-        int64_t l;
-    } u;
-
+    std::stringstream ss;
     int count{0};
-    for (int a = 7; a > 0; a--) {
-        u.c[a] = payload[location + count];
+    for (int a = 0; a < 8; a++) {
+        ss << std::hex << (int)payload[location + count];
         count++;
     }
 
-    return u.l;
+    std::string test = "0x" + ss.str();
+
+    size_t sz = 0;  // 000000000000000b
+
+    int64_t ll = std::stoll(test.substr(0, 18), &sz, 0);
+
+    return ll;
 }
 
 double readDouble(std::vector<char> payload, int location) {
