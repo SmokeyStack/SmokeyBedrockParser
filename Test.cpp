@@ -145,6 +145,32 @@ void readPayLoad(std::vector<char> payload, int location) {
         std::cout << ": " << readDouble(payload, location + 3 + a);
         readPayLoad(payload, location + 11 + a);
     }
+    if (payload[location] == 0x09) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a) << "\n";
+        int count{0};
+        int b{0};
+        int loc{0};
+        switch (payload[location + 3 + a]) {
+            case 0x05:
+                for (count; count < (int)payload[location + 7 + a]; count++)
+                    printf("%f\n",
+                           readGloat(payload, location + 8 + a + (count * 4)));
+                readPayLoad(payload, location + 8 + a + (count * 4));
+                break;
+            case 0x08:
+                for (count; count < (int)payload[location + 7 + a]; count++) {
+                    std::cout << readTagName(payload, location + 7 + a + loc,
+                                             payload[location + 9 + a + loc])
+                              << "\n";
+                    b = (int)payload[location + 9 + a + loc];
+                    loc = loc + 2 + b;
+                }
+                break;
+            default:
+                break;
+        }
+    }
 }
 int main(int argc, char* argv[]) {
     int count{0};
