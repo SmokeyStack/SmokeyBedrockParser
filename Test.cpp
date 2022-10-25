@@ -142,7 +142,7 @@ void readPayLoad(std::vector<char> payload, int location) {
     if (payload[location] == 0x06) {
         int a = (int)payload[location + 2];
         std::cout << readTagName(payload, location, a);
-        std::cout << ": " << readLong(payload, location + 3 + a);
+        std::cout << ": " << readDouble(payload, location + 3 + a);
         readPayLoad(payload, location + 11 + a);
     }
 }
