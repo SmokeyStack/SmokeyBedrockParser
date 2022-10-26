@@ -68,17 +68,21 @@ int8_t readByte(std::vector<char> payload, int location) {
 
 int64_t readLong(std::vector<char> payload, int location) {
     std::stringstream ss;
+    std::string data;
     int count{0};
     for (int a = 0; a < 8; a++) {
         ss << std::hex << (int)payload[location + count];
+        std::string test = ss.str();
+        if (test.length() > 2)
+            data += test.substr(test.length() - 2, 2);
+        else
+            data += test;
         count++;
     }
 
-    std::string test = "0x" + ss.str();
-
-    size_t sz = 0;  // 000000000000000b
-
-    int64_t ll = std::stoll(test.substr(0, 18), &sz, 0);
+    std::istringstream converter{data};
+    int64_t ll{0};
+    converter >> std::hex >> ll;
 
     return ll;
 }
