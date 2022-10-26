@@ -20,39 +20,12 @@ static std::vector<char> ReadBytes(char const* filename) {
 
 std::string readTagName(std::vector<char> payload, int location, size_t size) {
     std::string test{};
+
     for (auto it = 0; it < size; it++) test += payload[location + 3 + it];
+
     printf("%d - ", size);
+
     return test;
-}
-
-float readGloat(std::vector<char> payload, int location) {
-    union {
-        char c[4];
-        float f;
-    } u;
-
-    int count{0};
-    for (int a = 3; a > 0; a--) {
-        u.c[a] = payload[location + count];
-        count++;
-    }
-
-    return u.f;
-}
-
-int32_t readInt(std::vector<char> payload, int location) {
-    union {
-        char c[4];
-        int32_t i;
-    } u;
-
-    int count{0};
-    for (int a = 3; a > 0; a--) {
-        u.c[a] = payload[location + count];
-        count++;
-    }
-
-    return u.i;
 }
 
 int8_t readByte(std::vector<char> payload, int location) {
@@ -64,42 +37,6 @@ int8_t readByte(std::vector<char> payload, int location) {
     u.c[0] = payload[location];
 
     return u.b;
-}
-
-int64_t readLong(std::vector<char> payload, int location) {
-    std::stringstream ss;
-    std::string data;
-    int count{0};
-    for (int a = 0; a < 8; a++) {
-        ss << std::hex << (int)payload[location + count];
-        std::string test = ss.str();
-        if (test.length() > 2)
-            data += test.substr(test.length() - 2, 2);
-        else
-            data += test;
-        count++;
-    }
-
-    std::istringstream converter{data};
-    int64_t ll{0};
-    converter >> std::hex >> ll;
-
-    return ll;
-}
-
-double readDouble(std::vector<char> payload, int location) {
-    union {
-        char c[8];
-        double f;
-    } u;
-
-    int count{0};
-    for (int a = 7; a > 0; a--) {
-        u.c[a] = payload[location + count];
-        count++;
-    }
-
-    return u.f;
 }
 
 int16_t readShort(std::vector<char> payload, int location) {
@@ -114,18 +51,126 @@ int16_t readShort(std::vector<char> payload, int location) {
     return u.s;
 }
 
-void readPayLoad(std::vector<char> payload, int location) {
-    // printf("\n-----\n");
-    printf("\n-----\n 0x%02x - ", payload[location]);
-    if (payload[location] == 0x00 && location <= payload.size()) {
-        // std::cout << location + 1;
-        readPayLoad(payload, location + 1);
+int32_t readInt(std::vector<char> payload, int location) {
+    union {
+        char c[4];
+        int32_t i;
+    } u;
+
+    int count{0};
+
+    for (int a = 3; a > 0; a--) {
+        u.c[a] = payload[location + count];
+        count++;
     }
-    if (payload[location] == 0x0a) {
+
+    return u.i;
+}
+
+int64_t readLong(std::vector<char> payload, int location) {
+    std::stringstream ss;
+    std::string data;
+    int count{0};
+
+    for (int a = 0; a < 8; a++) {
+        ss << std::hex << (int)payload[location + count];
+        std::string test = ss.str();
+
+        if (test.length() > 2)
+            data += test.substr(test.length() - 2, 2);
+        else
+            data += test;
+
+        count++;
+    }
+
+    std::istringstream converter{data};
+    int64_t ll{0};
+    converter >> std::hex >> ll;
+
+    return ll;
+}
+
+float readFloat(std::vector<char> payload, int location) {
+    union {
+        char c[4];
+        float f;
+    } u;
+
+    int count{0};
+
+    for (int a = 3; a > 0; a--) {
+        u.c[a] = payload[location + count];
+        count++;
+    }
+
+    return u.f;
+}
+
+double readDouble(std::vector<char> payload, int location) {
+    union {
+        char c[8];
+        double d;
+    } u;
+
+    int count{0};
+
+    for (int a = 7; a > 0; a--) {
+        u.c[a] = payload[location + count];
+        count++;
+    }
+
+    return u.d;
+}
+
+void readPayLoad(std::vector<char> payload, int location) {
+    printf("\n-----\n 0x%02x - ", payload[location]);
+
+    if (payload[location] == 0x00 && location <= payload.size())
+        readPayLoad(payload, location + 1);
+
+    if (payload[location] == 0x01) {
         int a = (int)payload[location + 2];
         std::cout << readTagName(payload, location, a);
-        readPayLoad(payload, location + 3 + a);
+        printf(": %d", readByte(payload, location + 3 + a));
+        readPayLoad(payload, location + 4 + a);
     }
+
+    if (payload[location] == 0x02) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a);
+        std::cout << ": " << readShort(payload, location + 3 + a);
+        readPayLoad(payload, location + 5 + a);
+    }
+
+    if (payload[location] == 0x03) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a);
+        printf(": %d", readInt(payload, location + 3 + a));
+        readPayLoad(payload, location + 7 + a);
+    }
+
+    if (payload[location] == 0x04) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a);
+        std::cout << ": " << readLong(payload, location + 3 + a);
+        readPayLoad(payload, location + 11 + a);
+    }
+
+    if (payload[location] == 0x05) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a);
+        printf(": %f", readFloat(payload, location + 3 + a));
+        readPayLoad(payload, location + 7 + a);
+    }
+
+    if (payload[location] == 0x06) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a);
+        std::cout << ": " << readDouble(payload, location + 3 + a);
+        readPayLoad(payload, location + 11 + a);
+    }
+
     if (payload[location] == 0x08) {
         int a = (int)payload[location + 2];
         std::cout << readTagName(payload, location, a);
@@ -133,54 +178,22 @@ void readPayLoad(std::vector<char> payload, int location) {
         std::cout << ": " << readTagName(payload, location + a + 2, b);
         readPayLoad(payload, location + 5 + a + b);
     }
-    if (payload[location] == 0x05) {
-        int a = (int)payload[location + 2];
-        std::cout << readTagName(payload, location, a);
-        printf(": %f", readGloat(payload, location + 3 + a));
-        readPayLoad(payload, location + 7 + a);
-    }
-    if (payload[location] == 0x03) {
-        int a = (int)payload[location + 2];
-        std::cout << readTagName(payload, location, a);
-        printf(": %d", readInt(payload, location + 3 + a));
-        readPayLoad(payload, location + 7 + a);
-    }
-    if (payload[location] == 0x01) {
-        int a = (int)payload[location + 2];
-        std::cout << readTagName(payload, location, a);
-        printf(": %d", readByte(payload, location + 3 + a));
-        readPayLoad(payload, location + 4 + a);
-    }
-    if (payload[location] == 0x04) {
-        int a = (int)payload[location + 2];
-        std::cout << readTagName(payload, location, a);
-        std::cout << ": " << readLong(payload, location + 3 + a);
-        readPayLoad(payload, location + 11 + a);
-    }
-    if (payload[location] == 0x06) {
-        int a = (int)payload[location + 2];
-        std::cout << readTagName(payload, location, a);
-        std::cout << ": " << readDouble(payload, location + 3 + a);
-        readPayLoad(payload, location + 11 + a);
-    }
-    if (payload[location] == 0x02) {
-        int a = (int)payload[location + 2];
-        std::cout << readTagName(payload, location, a);
-        std::cout << ": " << readShort(payload, location + 3 + a);
-        readPayLoad(payload, location + 5 + a);
-    }
+
     if (payload[location] == 0x09) {
         int a = (int)payload[location + 2];
         std::cout << readTagName(payload, location, a) << "\n";
         int count{0};
         int b{0};
         int loc{0};
+
         switch (payload[location + 3 + a]) {
             case 0x05:
                 for (count; count < (int)payload[location + 7 + a]; count++)
                     printf("%f\n",
-                           readGloat(payload, location + 8 + a + (count * 4)));
+                           readFloat(payload, location + 8 + a + (count * 4)));
+
                 readPayLoad(payload, location + 8 + a + (count * 4));
+
                 break;
             case 0x08:
                 for (count; count < (int)payload[location + 7 + a]; count++) {
@@ -190,17 +203,24 @@ void readPayLoad(std::vector<char> payload, int location) {
                     b = (int)payload[location + 9 + a + loc];
                     loc = loc + 2 + b;
                 }
+
                 readPayLoad(payload, location + 8 + a + loc);
+
                 break;
             default:
                 break;
         }
     }
+
+    if (payload[location] == 0x0a) {
+        int a = (int)payload[location + 2];
+        std::cout << readTagName(payload, location, a);
+        readPayLoad(payload, location + 3 + a);
+    }
 }
 int main(int argc, char* argv[]) {
     int count{0};
     size_t length{ReadBytes(argv[1]).size()};
-
     std::vector<char> payload(ReadBytes(argv[1]).size());
 
     for (auto it = ReadBytes(argv[1]).begin(); it != ReadBytes(argv[1]).end();
