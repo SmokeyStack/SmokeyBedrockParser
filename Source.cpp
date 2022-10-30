@@ -135,17 +135,19 @@ int main(int argc, char* argv[]) {
 
     int how_many_keys = 0;
     int non_chunk_keys = 0;
+    // 000000000000000031 - BE | 0000000000000000[0-9a-z]\\w+ - Chunk
     std::regex target("0000000000000000[0-9a-z]\\w+");
 
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
         auto k = it->key();
+        auto v = it->value();
         std::cout << k[8] << "\t";
 
         if (is_chunk_key({k.data(), k.size()})) {
-            std::cout << slice_to_hex_string(k) << "\n";
-
-            if (std::regex_match(slice_to_hex_string(k), target))
-                db->Delete(leveldb::WriteOptions(), k);
+            if (std::regex_match(slice_to_hex_string(k), target)) {
+                std::cout << slice_to_hex_string(k) << "\n-----\n";
+                std::cout << slice_to_hex_string(v) << "\n\n";
+            }
 
         } else {
             switch (k[8]) {
@@ -178,3 +180,5 @@ int main(int argc, char* argv[]) {
     delete &it;
     return EXIT_SUCCESS;
 }
+
+// 0a00000804006e616d65
