@@ -6,6 +6,7 @@
 #include <regex>
 #include <sstream>
 
+#include "Test.cpp"
 #include "leveldb/cache.h"
 #include "leveldb/db.h"
 #include "leveldb/decompress_allocator.h"
@@ -144,24 +145,28 @@ int main(int argc, char* argv[]) {
         std::cout << k[8] << "\t";
 
         if (is_chunk_key({k.data(), k.size()})) {
-            if (std::regex_match(slice_to_hex_string(k), target)) {
-                std::cout << slice_to_hex_string(k) << "\n-----\n";
-                std::cout << slice_to_hex_string(v) << "\n\n";
-            }
+            // if (std::regex_match(slice_to_hex_string(k), target)) {
+            std::cout << slice_to_hex_string(k) << "\n-----\n";
+            std::cout << slice_to_hex_string(v) << "\n\n";
+            // }
 
         } else {
             switch (k[8]) {
                 case 102:
-                    db->Delete(leveldb::WriteOptions(), k);  // Entity
+                    // db->Delete(leveldb::WriteOptions(), k);  // Entity
                     break;
                 default:
                     break;
             }
 
-            std::cout << "Not a chunk!\t"
-                      << percent_encode(hex_to_string(slice_to_hex_string(k)))
-                      << "\n";
+            std::cout << "Not a chunk!\t" << ((slice_to_hex_string(k))) << "\n";
             non_chunk_keys++;
+            if (slice_to_hex_string(k) == "7e6c6f63616c5f706c61796572") {
+                std::string ss = hex_to_string(slice_to_hex_string(v));
+                std::vector<char> test(ss.begin(), ss.end());
+                for (const char& c : test) printf("0x%02x ", c);
+                readPayLoad(test, 0);
+            }
         }
 
         how_many_keys++;
