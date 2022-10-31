@@ -324,7 +324,6 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
         int count{0};
         int b{0};
         int loc{0};
-
         switch (payload[location + 3 + a]) {
             case 0x05:
                 for (count; count < (int)payload[location + 7 + a]; count++)
@@ -345,6 +344,14 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
                 }
 
                 readPayLoad(payload, location + 8 + a + loc, endian);
+
+                break;
+            case 0x0a:
+                if (is_little) {
+                    readPayLoad(payload, location + 3 + a, endian);
+                    break;
+                }
+                readPayLoad(payload, location + 8 + a, endian);
 
                 break;
             default:

@@ -6,13 +6,13 @@
 #include <regex>
 #include <sstream>
 
-#include "Test.cpp"
 #include "leveldb/cache.h"
 #include "leveldb/db.h"
 #include "leveldb/decompress_allocator.h"
 #include "leveldb/env.h"
 #include "leveldb/filter_policy.h"
 #include "leveldb/zlib_compressor.h"
+#include "nbt.cpp"
 
 std::string slice_to_hex_string(leveldb::Slice slice) {
     std::stringstream ss;
@@ -142,12 +142,12 @@ int main(int argc, char* argv[]) {
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
         auto k = it->key();
         auto v = it->value();
-        std::cout << k[8] << "\t";
+        // std::cout << k[8] << "\t";
 
         if (is_chunk_key({k.data(), k.size()})) {
             // if (std::regex_match(slice_to_hex_string(k), target)) {
-            std::cout << slice_to_hex_string(k) << "\n-----\n";
-            std::cout << slice_to_hex_string(v) << "\n\n";
+            // std::cout << slice_to_hex_string(k) << "\n-----\n";
+            // std::cout << slice_to_hex_string(v) << "\n\n";
             // }
 
         } else {
@@ -159,12 +159,13 @@ int main(int argc, char* argv[]) {
                     break;
             }
 
-            std::cout << "Not a chunk!\t" << ((slice_to_hex_string(k))) << "\n";
+            // std::cout << "Not a chunk!\t" << ((slice_to_hex_string(k))) <<
+            // "\n";
             non_chunk_keys++;
             if (slice_to_hex_string(k) == "7e6c6f63616c5f706c61796572") {
                 std::string ss = hex_to_string(slice_to_hex_string(v));
                 std::vector<char> test(ss.begin(), ss.end());
-                for (const char& c : test) printf("0x%02x ", c);
+                // for (const char& c : test) printf("");
                 readPayLoad(test, 0, 1);
             }
         }
