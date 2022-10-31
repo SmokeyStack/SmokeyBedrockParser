@@ -81,6 +81,10 @@ static int8_t readByte(std::vector<char> payload, int location) {
  * @param location
  * Location of the payload to start reading
  *
+ * @param is_little
+ * If true, the function reads in little-endian format
+ * If false, the function reads in big-endian format
+ *
  * @returns
  * Short value
  */
@@ -113,6 +117,10 @@ static int16_t readShort(std::vector<char> payload, int location,
  * @param location
  * Location of the payload to start reading
  *
+ * @param is_little
+ * If true, the function reads in little-endian format
+ * If false, the function reads in big-endian format
+ *
  * @returns
  * Int value
  */
@@ -126,7 +134,7 @@ static int32_t readInt(std::vector<char> payload, int location,
     int count{0};
 
     if (is_little) {
-        for (int a = 0; a < 3; a++) {
+        for (int a = 0; a < 4; a++) {
             u.c[a] = payload[location + count];
             count++;
         }
@@ -186,6 +194,10 @@ static int64_t readLong(std::vector<char> payload, int location) {
  * @param location
  * Location of the payload to start reading
  *
+ * @param is_little
+ * If true, the function reads in little-endian format
+ * If false, the function reads in big-endian format
+ *
  * @returns
  * Float value
  */
@@ -222,6 +234,10 @@ static float readFloat(std::vector<char> payload, int location,
  *
  * @param location
  * Location of the payload to start reading
+ *
+ * @param is_little
+ * If true, the function reads in little-endian format
+ * If false, the function reads in big-endian format
  *
  * @returns
  * Double value
@@ -325,8 +341,12 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
         int b{0};
         int loc{0};
         switch (payload[location + 3 + a]) {
+            case 0x00:
+                readPayLoad(payload, location + 4 + a, endian);
+
+                break;
             case 0x05:
-                for (count; count < (int)payload[location + 7 + a]; count++)
+                for (count; count < (int)payload[location + 4 + a]; count++)
                     printf("%f\n",
                            readFloat(payload, location + 8 + a + (count * 4),
                                      is_little));
@@ -335,6 +355,22 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
 
                 break;
             case 0x08:
+                if (is_little) {
+                    for (count; count < (int)payload[location + 4 + a];
+                         count++) {
+                        std::cout
+                            << readTagName(payload, location + 7 + a + loc,
+                                           payload[location + 8 + a + loc])
+                            << "\n";
+                        b = (int)payload[location + 8 + a + loc];
+                        loc = loc + 2 + b;
+                    }
+
+                    readPayLoad(payload, location + 8 + a + loc, endian);
+
+                    break;
+                }
+
                 for (count; count < (int)payload[location + 7 + a]; count++) {
                     std::cout << readTagName(payload, location + 7 + a + loc,
                                              payload[location + 9 + a + loc])
@@ -347,10 +383,6 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
 
                 break;
             case 0x0a:
-                if (is_little) {
-                    readPayLoad(payload, location + 3 + a, endian);
-                    break;
-                }
                 readPayLoad(payload, location + 8 + a, endian);
 
                 break;
