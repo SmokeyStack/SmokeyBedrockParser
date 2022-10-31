@@ -165,7 +165,7 @@ int main(int argc, char* argv[]) {
                 std::string ss = hex_to_string(slice_to_hex_string(v));
                 std::vector<char> test(ss.begin(), ss.end());
                 for (const char& c : test) printf("0x%02x ", c);
-                readPayLoad(test, 0);
+                readPayLoad(test, 0, 1);
             }
         }
 
