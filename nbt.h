@@ -8,6 +8,11 @@
 #include <typeinfo>
 #include <vector>
 
+#include "json.hpp"
+
+using json = nlohmann::json;
+json j;
+
 /**
  * Reads bytes from file
  *
@@ -291,6 +296,8 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
         int a = (int)payload[location + endian];
         std::cout << readTagName(payload, location, a);
         printf(": %d", readByte(payload, location + 3 + a));
+        j[readTagName(payload, location, a)] =
+            readByte(payload, location + 3 + a);
         readPayLoad(payload, location + 4 + a, endian);
     }
 
@@ -298,6 +305,8 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
         int a = (int)payload[location + endian];
         std::cout << readTagName(payload, location, a);
         std::cout << ": " << readShort(payload, location + 3 + a, is_little);
+        j[readTagName(payload, location, a)] =
+            readShort(payload, location + 3 + a, is_little);
         readPayLoad(payload, location + 5 + a, endian);
     }
 
@@ -305,6 +314,8 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
         int a = (int)payload[location + endian];
         std::cout << readTagName(payload, location, a);
         printf(": %d", readInt(payload, location + 3 + a, is_little));
+        j[readTagName(payload, location, a)] =
+            readInt(payload, location + 3 + a, is_little);
         readPayLoad(payload, location + 7 + a, endian);
     }
 
@@ -312,6 +323,8 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
         int a = (int)payload[location + endian];
         std::cout << readTagName(payload, location, a);
         std::cout << ": " << readLong(payload, location + 3 + a);
+        j[readTagName(payload, location, a)] =
+            readLong(payload, location + 3 + a);
         readPayLoad(payload, location + 11 + a, endian);
     }
 
@@ -319,6 +332,8 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
         int a = (int)payload[location + endian];
         std::cout << readTagName(payload, location, a);
         printf(": %f", readFloat(payload, location + 3 + a, is_little));
+        j[readTagName(payload, location, a)] =
+            readFloat(payload, location + 3 + a, is_little);
         readPayLoad(payload, location + 7 + a, endian);
     }
 
@@ -331,9 +346,12 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
 
     if (payload[location] == 0x08) {
         int a = (int)payload[location + endian];
+        std::string key = readTagName(payload, location, a);
         std::cout << readTagName(payload, location, a);
         int b = (int)payload[location + 2 + endian + a];
         std::cout << ": " << readTagName(payload, location + a + 2, b);
+        std::string value = readTagName(payload, location + a + 2, b);
+        j[key] = value;
         readPayLoad(payload, location + 5 + a + b, endian);
     }
 
@@ -401,46 +419,9 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
     }
 }
 
+static void parseNBT(std::vector<char> payload, int location, int endian) {
+    readPayLoad(payload, location, endian);
+    std::cout << "\n\nUwU" << j.dump(4);
+}
+
 #endif
-
-// int main(int argc, char* argv[]) {
-//     int count{0};
-//     size_t length{ReadBytes(argv[1]).size()};
-//     std::vector<char> payload(ReadBytes(argv[1]).size());
-
-//     for (auto it = ReadBytes(argv[1]).begin(); it !=
-//     ReadBytes(argv[1]).end();
-//          it++) {
-//         payload[count] = *it;
-//         count++;
-//     }
-
-//     for (int a = 0; a < length; a++) printf("%02x", payload[a]);
-
-//     std::cout << "\n-----\n";
-
-// if (strcmp("--big", argv[2]) == 0) readPayLoad(payload, 0, 2);
-// if (strcmp("--little", argv[2]) == 0) readPayLoad(payload, 0, 1);
-
-// std::cout << "\n-----\n";
-
-// std::vector<char> test = {
-//     0x0a, 0x00, 0x00, 0x08, 0x04, 0x00, 0x6e, 0x61, 0x6d, 0x65, 0x0d,
-//     0x00, 0x6d, 0x69, 0x6e, 0x65, 0x63, 0x72, 0x61, 0x66, 0x74, 0x3a,
-//     0x61, 0x69, 0x72, 0x0a, 0x06, 0x00, 0x73, 0x74, 0x61, 0x74, 0x65,
-//     0x73, 0x00, 0x03, 0x07, 0x00, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f,
-//     0x6e, 0x01, 0x0a, 0x12, 0x01, 0x00, 0x0a, 0x00, 0x00, 0x08, 0x04,
-//     0x00, 0x6e, 0x61, 0x6d, 0x65, 0x0f, 0x00, 0x6d, 0x69, 0x6e, 0x65,
-//     0x63, 0x72, 0x61, 0x66, 0x74, 0x3a, 0x73, 0x74, 0x6f, 0x6e, 0x65,
-//     0x0a, 0x06, 0x00, 0x73, 0x74, 0x61, 0x74, 0x65, 0x73, 0x08, 0x0a,
-//     0x00, 0x73, 0x74, 0x6f, 0x6e, 0x65, 0x5f, 0x74, 0x79, 0x70, 0x65,
-//     0x05, 0x00, 0x73, 0x74, 0x6f, 0x6e, 0x65, 0x00, 0x03, 0x07, 0x00,
-//     0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x01, 0x0a, 0x12, 0x01,
-//     0x00};
-
-// readPayLoad(test, 0);
-
-//     return 0;
-// }
-
-// 0x0a,0x00,0x00,0x08,0x04,0x00,0x6e,0x61,0x6d,0x65,0x0d,0x00,0x6d,0x69,0x6e,0x65,0x63,0x72,0x61,0x66,0x74,0x3a,0x61,0x69,0x72,0x0a,0x06,0x00,0x73,0x74,0x61,0x74,0x65,0x73,0x00,0x03,0x07,0x00,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x01,0x0a,0x12,0x01,0x00,0x0a,0x00,0x00,0x08,0x04,0x00,0x6e,0x61,0x6d,0x65,0x0f,0x00,0x6d,0x69,0x6e,0x65,0x63,0x72,0x61,0x66,0x74,0x3a,0x73,0x74,0x6f,0x6e,0x65,0x0a,0x06,0x00,0x73,0x74,0x61,0x74,0x65,0x73,0x08,0x0a,0x00,0x73,0x74,0x6f,0x6e,0x65,0x5f,0x74,0x79,0x70,0x65,0x05,0x00,0x73,0x74,0x6f,0x6e,0x65,0x00,0x03,0x07,0x00,0x76,0x65,0x72,0x73,0x69,0x6f,0x6e,0x01,0x0a,0x12,0x01,0x00

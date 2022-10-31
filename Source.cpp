@@ -80,6 +80,24 @@ bool is_chunk_key(std::string_view key) {
     return false;
 }
 
+char parse_chunk_key(std::string_view key) {
+    char subtag{};
+    char tag{};
+    if (key.size() == 9) {
+        tag = key[8];
+        subtag = -1;
+    } else if (key.size() == 10) {
+        tag = key[8];
+        subtag = key[9];
+    } else if (key.size() == 13) {
+        tag = key[12];
+        subtag = -1;
+    } else if (key.size() == 14) {
+        tag = key[12];
+        subtag = key[13];
+    }
+    return tag;
+}
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Usage: %s <minecraft_world_dir> > list.tsv\n", argv[0]);
@@ -93,25 +111,27 @@ int main(int argc, char* argv[]) {
 
     leveldb::Options options;
 
-    // create a bloom filter to quickly tell if a key is in the database or not
+    // create a bloom filter to quickly tell if a key is in the database or
+    // not
     options.filter_policy = leveldb::NewBloomFilterPolicy(10);
 
     // create a 40 mb cache (we use this on ~1gb devices)
     options.block_cache = leveldb::NewLRUCache(40 * 1024 * 1024);
 
-    // create a 4mb write buffer, to improve compression and touch the disk less
+    // create a 4mb write buffer, to improve compression and touch the disk
+    // less
     options.write_buffer_size = 4 * 1024 * 1024;
 
-    // disable internal logging. The default logger will still print out things
-    // to a file
+    // disable internal logging. The default logger will still print out
+    // things to a file
     options.info_log = new NullLogger();
 
     // use the new raw-zip compressor to write (and read)
     auto zlib_raw_compressor = std::make_unique<leveldb::ZlibCompressorRaw>(-1);
     options.compressors[0] = zlib_raw_compressor.get();
 
-    // also setup the old, slower compressor for backwards compatibility. This
-    // will only be used to read old compressed blocks.
+    // also setup the old, slower compressor for backwards compatibility.
+    // This will only be used to read old compressed blocks.
     auto zlib_compressor = std::make_unique<leveldb::ZlibCompressor>();
     options.compressors[1] = zlib_compressor.get();
 
@@ -145,10 +165,13 @@ int main(int argc, char* argv[]) {
         // std::cout << k[8] << "\t";
 
         if (is_chunk_key({k.data(), k.size()})) {
-            // if (std::regex_match(slice_to_hex_string(k), target)) {
+            // printf("0x%02x\t", parse_chunk_key({k.data(), k.size()}));
             // std::cout << slice_to_hex_string(k) << "\n-----\n";
             // std::cout << slice_to_hex_string(v) << "\n\n";
-            // }
+            // std::string ss = hex_to_string(slice_to_hex_string(v));
+            // std::vector<char> test(ss.begin(), ss.end());
+            // for (const char& c : test) printf("");
+            // parseNBT(test, 0, 1);
 
         } else {
             switch (k[8]) {
@@ -159,15 +182,21 @@ int main(int argc, char* argv[]) {
                     break;
             }
 
-            // std::cout << "Not a chunk!\t" << ((slice_to_hex_string(k))) <<
-            // "\n";
+            // std::cout << "Not a chunk!\t" << (slice_to_hex_string(k)) <<
+            // "\n"; std::cout << k.data();
             non_chunk_keys++;
             if (slice_to_hex_string(k) == "7e6c6f63616c5f706c61796572") {
                 std::string ss = hex_to_string(slice_to_hex_string(v));
                 std::vector<char> test(ss.begin(), ss.end());
-                // for (const char& c : test) printf("");
-                readPayLoad(test, 0, 1);
+                for (const char& c : test) printf("0x%02x\n", c);
+                parseNBT(test, 0, 1);
             }
+            // if (slice_to_hex_string(k) == "42696f6d6544617461") {
+            //     std::string ss = hex_to_string(slice_to_hex_string(v));
+            //     std::vector<char> test(ss.begin(), ss.end());
+            //     for (const char& c : test) printf("");
+            //     // parseNBT(test, 0, 1);
+            // }
         }
 
         how_many_keys++;
