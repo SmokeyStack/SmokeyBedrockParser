@@ -12,7 +12,7 @@
 #include "leveldb/env.h"
 #include "leveldb/filter_policy.h"
 #include "leveldb/zlib_compressor.h"
-#include "nbt.cpp"
+#include "nbt.h"
 
 std::string slice_to_hex_string(leveldb::Slice slice) {
     std::stringstream ss;

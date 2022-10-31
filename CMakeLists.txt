@@ -38,7 +38,7 @@ if(VCPKG_APPLOCAL_DEPS AND VCPKG_TARGET_TRIPLET MATCHES "windows|uwp")
 endif()
 
 add_executable(SmokeyBedrockParser
-  nbt.cpp
+  nbt.h
   Source.cpp
 )
 target_link_libraries(SmokeyBedrockParser leveldb)

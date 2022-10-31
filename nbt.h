@@ -1,3 +1,6 @@
+#ifndef NBT_H
+#define NBT_H
+
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -397,6 +400,8 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
         readPayLoad(payload, location + 3 + a, endian);
     }
 }
+
+#endif
 
 // int main(int argc, char* argv[]) {
 //     int count{0};
