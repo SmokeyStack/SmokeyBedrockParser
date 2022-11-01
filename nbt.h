@@ -166,6 +166,10 @@ static int32_t readInt(std::vector<char> payload, int location,
  * @param location
  * Location of the payload to start reading
  *
+ * @param is_little
+ * If true, the function reads in little-endian format
+ * If false, the function reads in big-endian format
+ *
  * @returns
  * Long value
  */
