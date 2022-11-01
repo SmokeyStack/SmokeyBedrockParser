@@ -11,7 +11,7 @@
 #include "json.hpp"
 
 using json = nlohmann::json;
-json j;
+json j = j["nbt"];
 
 /**
  * Reads bytes from file
@@ -285,92 +285,104 @@ static double readDouble(std::vector<char> payload, int location,
  * Location of the payload to start reading
  */
 static void readPayLoad(std::vector<char> payload, int location, int endian) {
-    printf("\n-----\n 0x%02x - ", payload[location]);
     bool is_little = false;
     if (endian == 1) is_little = true;
+
+    if (location > payload.size()) std::cout << "\n\n" << j.dump(4) << "\n\n";
 
     if (payload[location] == 0x00 && location <= payload.size())
         readPayLoad(payload, location + 1, endian);
 
     if (payload[location] == 0x01) {
         int a = (int)payload[location + endian];
-        std::cout << readTagName(payload, location, a);
-        printf(": %d", readByte(payload, location + 3 + a));
-        j[readTagName(payload, location, a)] =
-            readByte(payload, location + 3 + a);
+        std::string key = readTagName(payload, location, a);
+        int8_t value = readByte(payload, location + 3 + a);
+        j["nbt"].push_back({{"TagType", 1}, {"Name", key}, {"Value", value}});
+
         readPayLoad(payload, location + 4 + a, endian);
     }
 
     if (payload[location] == 0x02) {
         int a = (int)payload[location + endian];
-        std::cout << readTagName(payload, location, a);
-        std::cout << ": " << readShort(payload, location + 3 + a, is_little);
-        j[readTagName(payload, location, a)] =
-            readShort(payload, location + 3 + a, is_little);
+        std::string key = readTagName(payload, location, a);
+        int16_t value = readShort(payload, location + 3 + a, is_little);
+        j["nbt"].push_back({{"TagType", 2}, {"Name", key}, {"Value", value}});
+
         readPayLoad(payload, location + 5 + a, endian);
     }
 
     if (payload[location] == 0x03) {
         int a = (int)payload[location + endian];
-        std::cout << readTagName(payload, location, a);
-        printf(": %d", readInt(payload, location + 3 + a, is_little));
-        j[readTagName(payload, location, a)] =
-            readInt(payload, location + 3 + a, is_little);
+        std::string key = readTagName(payload, location, a);
+        int32_t value = readInt(payload, location + 3 + a, is_little);
+        j["nbt"].push_back({{"TagType", 3}, {"Name", key}, {"Value", value}});
+
         readPayLoad(payload, location + 7 + a, endian);
     }
 
     if (payload[location] == 0x04) {
         int a = (int)payload[location + endian];
-        std::cout << readTagName(payload, location, a);
-        std::cout << ": " << readLong(payload, location + 3 + a);
-        j[readTagName(payload, location, a)] =
-            readLong(payload, location + 3 + a);
+        std::string key = readTagName(payload, location, a);
+        int64_t value = readLong(payload, location + 3 + a);
+        j["nbt"].push_back({{"TagType", 4}, {"Name", key}, {"Value", value}});
+
         readPayLoad(payload, location + 11 + a, endian);
     }
 
     if (payload[location] == 0x05) {
         int a = (int)payload[location + endian];
-        std::cout << readTagName(payload, location, a);
-        printf(": %f", readFloat(payload, location + 3 + a, is_little));
-        j[readTagName(payload, location, a)] =
-            readFloat(payload, location + 3 + a, is_little);
+        std::string key = readTagName(payload, location, a);
+        float value = readFloat(payload, location + 3 + a, is_little);
+        j["nbt"].push_back({{"TagType", 5}, {"Name", key}, {"Value", value}});
+
         readPayLoad(payload, location + 7 + a, endian);
     }
 
     if (payload[location] == 0x06) {
         int a = (int)payload[location + endian];
-        std::cout << readTagName(payload, location, a);
-        std::cout << ": " << readDouble(payload, location + 3 + a, is_little);
+        std::string key = readTagName(payload, location, a);
+        double value = readDouble(payload, location + 3 + a, is_little);
+        j["nbt"].push_back({{"TagType", 6}, {"Name", key}, {"Value", value}});
+
         readPayLoad(payload, location + 11 + a, endian);
     }
 
     if (payload[location] == 0x08) {
         int a = (int)payload[location + endian];
         std::string key = readTagName(payload, location, a);
-        std::cout << readTagName(payload, location, a);
         int b = (int)payload[location + 2 + endian + a];
-        std::cout << ": " << readTagName(payload, location + a + 2, b);
         std::string value = readTagName(payload, location + a + 2, b);
-        j[key] = value;
+        j["nbt"].push_back({{"TagType", 8}, {"Name", key}, {"Value", value}});
+
         readPayLoad(payload, location + 5 + a + b, endian);
     }
 
     if (payload[location] == 0x09) {
         int a = (int)payload[location + endian];
-        std::cout << readTagName(payload, location, a) << "\n";
+        std::string key = readTagName(payload, location, a);
         int count{0};
         int b{0};
         int loc{0};
+        std::vector<float> floatArr{};
         switch (payload[location + 3 + a]) {
             case 0x00:
+                j["nbt"].push_back(
+                    {{"TagType", 9},
+                     {"Name", key},
+                     {"Value", {{"TagListType", 0}, {"List", nullptr}}}});
+
                 readPayLoad(payload, location + 4 + a, endian);
 
                 break;
             case 0x05:
                 for (count; count < (int)payload[location + 4 + a]; count++)
-                    printf("%f\n",
-                           readFloat(payload, location + 8 + a + (count * 4),
-                                     is_little));
+                    floatArr.push_back(readFloat(
+                        payload, location + 8 + a + (count * 4), is_little));
+
+                j["nbt"].push_back(
+                    {{"TagType", 9},
+                     {"Name", key},
+                     {"Value", {{"TagListType", 5}, {"List", floatArr}}}});
 
                 readPayLoad(payload, location + 8 + a + (count * 4), endian);
 
@@ -417,11 +429,6 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
         std::cout << readTagName(payload, location, a);
         readPayLoad(payload, location + 3 + a, endian);
     }
-}
-
-static void parseNBT(std::vector<char> payload, int location, int endian) {
-    readPayLoad(payload, location, endian);
-    std::cout << "\n\nUwU" << j.dump(4);
 }
 
 #endif

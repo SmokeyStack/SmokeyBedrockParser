@@ -188,8 +188,8 @@ int main(int argc, char* argv[]) {
             if (slice_to_hex_string(k) == "7e6c6f63616c5f706c61796572") {
                 std::string ss = hex_to_string(slice_to_hex_string(v));
                 std::vector<char> test(ss.begin(), ss.end());
-                for (const char& c : test) printf("0x%02x\n", c);
-                parseNBT(test, 0, 1);
+                // for (const char& c : test) printf("0x%02x\n", c);
+                readPayLoad(test, 0, 1);
             }
             // if (slice_to_hex_string(k) == "42696f6d6544617461") {
             //     std::string ss = hex_to_string(slice_to_hex_string(v));
