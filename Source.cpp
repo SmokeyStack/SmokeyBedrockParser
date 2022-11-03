@@ -160,44 +160,101 @@ int main(int argc, char* argv[]) {
     std::regex target("0000000000000000[0-9a-z]\\w+");
 
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
-        auto k = it->key();
-        auto v = it->value();
-        // std::cout << k[8] << "\t";
+        leveldb::Slice key = it->key();
+        size_t key_size = key.size();
+        const char* key_data = key.data();
+        leveldb::Slice value = it->value();
 
-        if (is_chunk_key({k.data(), k.size()})) {
-            // printf("0x%02x\t", parse_chunk_key({k.data(), k.size()}));
-            // std::cout << slice_to_hex_string(k) << "\n-----\n";
-            // std::cout << slice_to_hex_string(v) << "\n\n";
-            // std::string ss = hex_to_string(slice_to_hex_string(v));
-            // std::vector<char> test(ss.begin(), ss.end());
-            // for (const char& c : test) printf("");
-            // parseNBT(test, 0, 1);
+        if (strncmp(key_data, "BiomeData", key_size) == 0)
+            std::cout << "Biome Data\n";
 
-        } else {
-            switch (k[8]) {
-                case 102:
-                    // db->Delete(leveldb::WriteOptions(), k);  // Entity
-                    break;
-                default:
-                    break;
-            }
+        else if (strncmp(key_data, "Overworld", key_size) == 0)
+            std::cout << "Overworld\n";
 
-            // std::cout << "Not a chunk!\t" << (slice_to_hex_string(k)) <<
-            // "\n"; std::cout << k.data();
-            non_chunk_keys++;
-            if (slice_to_hex_string(k) == "7e6c6f63616c5f706c61796572") {
-                std::string ss = hex_to_string(slice_to_hex_string(v));
-                std::vector<char> test(ss.begin(), ss.end());
-                // for (const char& c : test) printf("0x%02x\n", c);
-                readPayLoad(test, 0, 1);
-            }
-            // if (slice_to_hex_string(k) == "42696f6d6544617461") {
-            //     std::string ss = hex_to_string(slice_to_hex_string(v));
-            //     std::vector<char> test(ss.begin(), ss.end());
-            //     for (const char& c : test) printf("");
-            //     // parseNBT(test, 0, 1);
-            // }
+        else if (strncmp(key_data, "~local_player", key_size) == 0)
+            std::cout << "Local Player\n";
+
+        else if ((key_size >= 7) && (strncmp(key_data, "player_", 7) == 0)) {
+            std::string remote_player_id = std::string(
+                &key_data[strlen("player_")], key_size - strlen("player_"));
+            std::cout << "Remote Player - id: " << remote_player_id << "\n";
+        } else if (strncmp(key_data, "game_flatworldlayers", key_size) == 0)
+            std::cout
+                << "game_flatworldlayers\n";  // MC Wiki says it's for flat
+                                              // worlds, priority: low
+        else if (strncmp(key_data, "VILLAGE_", 8) == 0)
+            std::cout << "Village\n";
+
+        else if (strncmp(key_data, "AutonomousEntities", key_size) == 0)
+            std::cout << "AutonomousEntities\n";  // ??? MC Wiki help please?
+
+        else if (strncmp(key_data, "LevelChunkMetaDataDictionary", key_size) ==
+                 0)
+            std::cout << "LevelChunkMetaDataDictionary\n";  // ??? MC Wiki help
+                                                            // please?
+
+        else if (strncmp(key_data, "actorprefix", 11) == 0)
+            std::cout << "Entity found\n";
+
+        else if (strncmp(key_data, "digp", 4) == 0)
+            std::cout << "Pointer to entity\n";
+
+        else if (strncmp(key_data, "mobevents", key_size) == 0)
+            std::cout << "mobevents\n";
+
+        else if (strncmp(key_data, "schedulerWT", key_size) == 0)
+            std::cout << "schedulerWT\n";  // ??? MC Wiki help please?
+
+        else if (strncmp(key_data, "scoreboard", key_size) == 0)
+            std::cout << "scoreboard\n";
+
+        else if (is_chunk_key({key_data, key_size}))
+            std::cout << "Chunk\n";
+
+        else {
+            printf("\nUnknown record:\n-----\nkey_size: %d\t",
+                   (int32_t)key.size());
+            std::cout << percent_encode(hex_to_string(slice_to_hex_string(key)))
+                      << "\n";
         }
+
+        // if (is_chunk_key({key_data, key_size})) {
+        //     // printf("0x%02x\t", parse_chunk_key({k.data(), k.size()}));
+        //     // std::cout << slice_to_hex_string(k) << "\n-----\n";
+        //     // std::cout << slice_to_hex_string(v) << "\n\n";
+        //     // std::string ss = hex_to_string(slice_to_hex_string(v));
+        //     // std::vector<char> test(ss.begin(), ss.end());
+        //     // for (const char& c : test) printf("");
+        //     // parseNBT(test, 0, 1);
+
+        // } else {
+        //     switch (key[8]) {
+        //         case 102:
+        //             // db->Delete(leveldb::WriteOptions(), k);  // Entity
+        //             break;
+        //         default:
+        //             break;
+        //     }
+
+        //     std::cout << "Not a chunk!\t"
+        //               << hex_to_string(slice_to_hex_string(key)) << "\n";
+        //     // std::cout << k.data();
+        //     non_chunk_keys++;
+        //     // if (slice_to_hex_string(key) == "7e6c6f63616c5f706c61796572")
+        //     // {
+        //     //     std::string ss =
+        //     //     hex_to_string(slice_to_hex_string(value));
+        //     //     std::vector<char> test(ss.begin(), ss.end());
+        //     //     for (const char& c : test) printf("0x%02x\n", c);
+        //     //     parseNBT(test, 0, 1);
+        //     // }
+        //     // if (slice_to_hex_string(k) == "42696f6d6544617461") {
+        //     //     std::string ss = hex_to_string(slice_to_hex_string(v));
+        //     //     std::vector<char> test(ss.begin(), ss.end());
+        //     //     for (const char& c : test) printf("");
+        //     //     // parseNBT(test, 0, 1);
+        //     // }
+        // }
 
         how_many_keys++;
     }
@@ -215,5 +272,3 @@ int main(int argc, char* argv[]) {
     delete &it;
     return EXIT_SUCCESS;
 }
-
-// 0a00000804006e616d65
