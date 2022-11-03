@@ -166,31 +166,43 @@ static int32_t readInt(std::vector<char> payload, int location,
  * @param location
  * Location of the payload to start reading
  *
+ * @param is_little
+ * If true, the function reads in little-endian format
+ * If false, the function reads in big-endian format
+ *
  * @returns
  * Long value
  */
-static int64_t readLong(std::vector<char> payload, int location) {
-    std::stringstream ss;
-    std::string data;
-    int count{0};
+static int64_t readLong(std::vector<char> payload, int location,
+                        bool is_little) {
+    union {
+        char c[4];
+        int64_t l;
+    } u;
 
-    for (int a = 0; a < 8; a++) {
-        ss << std::hex << (int)payload[location + count];
-        std::string test = ss.str();
+    if (is_little) {
+        u.c[0] = payload[location];
+        u.c[1] = payload[location + 1];
+        u.c[2] = payload[location + 2];
+        u.c[3] = payload[location + 3];
+        u.c[4] = payload[location + 4];
+        u.c[5] = payload[location + 5];
+        u.c[6] = payload[location + 6];
+        u.c[7] = payload[location + 7];
 
-        if (test.length() > 2)
-            data += test.substr(test.length() - 2, 2);
-        else
-            data += test;
-
-        count++;
+        return u.l;
     }
 
-    std::istringstream converter{data};
-    int64_t ll{0};
-    converter >> std::hex >> ll;
+    u.c[7] = payload[location];
+    u.c[6] = payload[location + 1];
+    u.c[5] = payload[location + 2];
+    u.c[4] = payload[location + 3];
+    u.c[3] = payload[location + 4];
+    u.c[2] = payload[location + 5];
+    u.c[1] = payload[location + 6];
+    u.c[0] = payload[location + 7];
 
-    return ll;
+    return u.l;
 }
 
 /**
@@ -322,9 +334,9 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
     if (payload[location] == 0x04) {
         int a = (int)payload[location + endian];
         std::cout << readTagName(payload, location, a);
-        std::cout << ": " << readLong(payload, location + 3 + a);
+        std::cout << ": " << readLong(payload, location + 3 + a, is_little);
         j[readTagName(payload, location, a)] =
-            readLong(payload, location + 3 + a);
+            readLong(payload, location + 3 + a, is_little);
         readPayLoad(payload, location + 11 + a, endian);
     }
 
