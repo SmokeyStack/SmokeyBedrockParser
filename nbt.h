@@ -52,7 +52,7 @@ static std::string readTagName(std::vector<char> payload, int location,
 
     for (auto it = 0; it < size; it++) test += payload[location + 3 + it];
 
-    printf("%zd - ", size);
+    // printf("%zd - ", size);
 
     return test;
 }
@@ -335,7 +335,7 @@ static void readPayLoad(std::vector<char> payload, int location, int endian) {
     if (payload[location] == 0x04) {
         int a = (int)payload[location + endian];
         std::string key = readTagName(payload, location, a);
-        int64_t value = readLong(payload, location + 3 + a);
+        int64_t value = readLong(payload, location + 3 + a, is_little);
         j["nbt"].push_back({{"TagType", 4}, {"Name", key}, {"Value", value}});
         readPayLoad(payload, location + 11 + a, endian);
     }

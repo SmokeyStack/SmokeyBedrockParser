@@ -171,14 +171,20 @@ int main(int argc, char* argv[]) {
         else if (strncmp(key_data, "Overworld", key_size) == 0)
             std::cout << "Overworld\n";
 
-        else if (strncmp(key_data, "~local_player", key_size) == 0)
+        else if (strncmp(key_data, "~local_player", key_size) == 0) {
             std::cout << "Local Player\n";
+            std::string ss = hex_to_string(slice_to_hex_string(value));
+            std::vector<char> test(ss.begin(), ss.end());
+            readPayLoad(test, 0, 1);
+        }
 
         else if ((key_size >= 7) && (strncmp(key_data, "player_", 7) == 0)) {
             std::string remote_player_id = std::string(
                 &key_data[strlen("player_")], key_size - strlen("player_"));
             std::cout << "Remote Player - id: " << remote_player_id << "\n";
-        } else if (strncmp(key_data, "game_flatworldlayers", key_size) == 0)
+        }
+
+        else if (strncmp(key_data, "game_flatworldlayers", key_size) == 0)
             std::cout
                 << "game_flatworldlayers\n";  // MC Wiki says it's for flat
                                               // worlds, priority: low
@@ -193,8 +199,12 @@ int main(int argc, char* argv[]) {
             std::cout << "LevelChunkMetaDataDictionary\n";  // ??? MC Wiki help
                                                             // please?
 
-        else if (strncmp(key_data, "actorprefix", 11) == 0)
+        else if (strncmp(key_data, "actorprefix", 11) == 0) {
             std::cout << "Entity found\n";
+            std::string ss = hex_to_string(slice_to_hex_string(value));
+            std::vector<char> test(ss.begin(), ss.end());
+            readPayLoad(test, 0, 1);
+        }
 
         else if (strncmp(key_data, "digp", 4) == 0)
             std::cout << "Pointer to entity\n";
@@ -235,19 +245,6 @@ int main(int argc, char* argv[]) {
         //         default:
         //             break;
         //     }
-
-        //     std::cout << "Not a chunk!\t"
-        //               << hex_to_string(slice_to_hex_string(key)) << "\n";
-        //     // std::cout << k.data();
-        //     non_chunk_keys++;
-        //     // if (slice_to_hex_string(key) == "7e6c6f63616c5f706c61796572")
-        //     // {
-        //     //     std::string ss =
-        //     //     hex_to_string(slice_to_hex_string(value));
-        //     //     std::vector<char> test(ss.begin(), ss.end());
-        //     //     for (const char& c : test) printf("0x%02x\n", c);
-        //     //     parseNBT(test, 0, 1);
-        //     // }
         //     // if (slice_to_hex_string(k) == "42696f6d6544617461") {
         //     //     std::string ss = hex_to_string(slice_to_hex_string(v));
         //     //     std::vector<char> test(ss.begin(), ss.end());
