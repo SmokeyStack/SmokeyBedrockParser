@@ -1,3 +1,9 @@
-[submodule "leveldb-mcpe"]
-	path = leveldb-mcpe
+[submodule "third-party/leveldb-mcpe"]
+	path = third-party/leveldb-mcpe
 	url = https://github.com/reedacartwright/leveldb-mcpe
+[submodule "third-party/libnbtplusplus"]
+	path = third-party/libnbtplusplus
+	url = https://github.com/ljfa-ag/libnbtplusplus
+[submodule "third-party/spdlog"]
+	path = third-party/spdlog
+	url = https://github.com/gabime/spdlog
