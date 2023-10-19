@@ -15,10 +15,20 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
 set(CMAKE_BUILD_TYPE_INIT "RelWithDebInfo")
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 
-project(SmokeyBedrockParser VERSION 0.1 LANGUAGES CXX)
+set(BIN_NAME SmokeyBedrockParser)
+set(LIB_NAME SmokeyBedrockParserLib)
 
+project(SmokeyBedrockParser VERSION 0.1)
 option(LEVELDB_BUILD_TESTS OFF)
-add_subdirectory(leveldb-mcpe)
+
+file(GLOB_RECURSE SRC_FILES src/*.cpp)
+file(GLOB_RECURSE HEADER_FILES include/*.h)
+add_library(${LIB_NAME} STATIC ${SRC_FILES})
+
+add_subdirectory(third-party/leveldb-mcpe)
+add_subdirectory(third-party/spdlog)
+set(NBT_BUILD_TESTS OFF CACHE INTERNAL "Don't build nbt++ tests")
+add_subdirectory(third-party/libnbtplusplus)
 
 # GOOGLE disables RTTI for leveldb so we will do the same
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -31,18 +41,17 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif()
 
-if(VCPKG_APPLOCAL_DEPS AND VCPKG_TARGET_TRIPLET MATCHES "windows|uwp")
-  install(DIRECTORY $<TARGET_FILE_DIR:SmokeyBedrockParser>
-    TYPE BIN
-    FILES_MATCHING PATTERN "*.dll")
-endif()
+target_include_directories(${LIB_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${LIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
-add_executable(SmokeyBedrockParser
-  nbt.h
-  Source.cpp
+target_link_libraries(${LIB_NAME}
+  leveldb spdlog nbt++
 )
-target_link_libraries(SmokeyBedrockParser leveldb)
-target_include_directories(SmokeyBedrockParser PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
+
+add_executable(${BIN_NAME} src/SmokeyBedrockParser.cpp)
+target_link_libraries(${BIN_NAME} PRIVATE ${LIB_NAME})
+target_include_directories(${BIN_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
 
 if(VCPKG_APPLOCAL_DEPS AND VCPKG_TARGET_TRIPLET MATCHES "windows|uwp")
   install(DIRECTORY $<TARGET_FILE_DIR:SmokeyBedrockParser>/
