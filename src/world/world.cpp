@@ -8,6 +8,7 @@
 #include "leveldb/zlib_compressor.h"
 
 #include "logger.h"
+#include "nbt.h"
 
 namespace {
 	class NullLogger : public leveldb::Logger {
@@ -52,10 +53,28 @@ namespace smokey_bedrock_parser {
 
 	int32_t MinecraftWorldLevelDB::ParseLevelFile(std::string file_name) {
 
-		FILE* fp = fopen(file_name.c_str(), "rb");
-		if (!fp) {
+		FILE* file = fopen(file_name.c_str(), "rb");
+		if (!file) {
 			log::error("Failed to open input file (fn={} error={} ({}))", file_name, strerror(errno), errno);
 			return -1;
+		}
+
+		int32_t format_version;
+		int32_t buffer_length;
+		fread(&format_version, sizeof(int32_t), 1, file);
+		fread(&buffer_length, sizeof(int32_t), 1, file);
+
+		log::info("ParseLevelFile: name={} version={} len={}", file_name, format_version, buffer_length);
+
+		int32_t result = -2;
+
+		if (buffer_length > 0) {
+			char* buffer = new char[buffer_length];
+			fread(buffer, 1, buffer_length, file);
+			fclose(file);
+
+			NbtTagList tag_list;
+			result = ParseNbt("level.dat: ", buffer, buffer_length, tag_list);
 		}
 
 		return 0;

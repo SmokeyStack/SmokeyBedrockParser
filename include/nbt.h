@@ -12,5 +12,5 @@ namespace smokey_bedrock_parser {
 	typedef std::pair<std::string, std::unique_ptr<nbt::tag>> NbtTag;
 	typedef std::vector<NbtTag> NbtTagList;
 
-	int32_t ParseNbt(char header, char buffer, int32_t buffer_length, NbtTagList tag_list);
+	int32_t ParseNbt(const char* header, const char* buffer, int32_t buffer_length, NbtTagList& tag_list);
 }
