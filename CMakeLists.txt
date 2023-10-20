@@ -22,7 +22,7 @@ project(SmokeyBedrockParser VERSION 0.1)
 option(LEVELDB_BUILD_TESTS OFF)
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp)
-file(GLOB_RECURSE HEADER_FILES include/*.h)
+file(GLOB_RECURSE HEADER_FILES include/*.h include/*.hpp)
 add_library(${LIB_NAME} STATIC ${SRC_FILES})
 
 add_subdirectory(third-party/leveldb-mcpe)
