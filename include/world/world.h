@@ -100,9 +100,7 @@ namespace smokey_bedrock_parser {
 
 		int32_t init(std::string db_directory);
 
-		int32_t dbOpen(std::string db_directory) {
-			return 0;
-		}
+		int32_t dbOpen(std::string db_directory);
 
 		int32_t dbClose() {
 			if (db != nullptr) {
@@ -111,6 +109,8 @@ namespace smokey_bedrock_parser {
 			}
 			return 0;
 		}
+
+		int32_t CalculateTotalRecords();
 
 		int32_t dbParse();
 	};
