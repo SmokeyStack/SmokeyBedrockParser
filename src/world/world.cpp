@@ -10,6 +10,54 @@
 #include "logger.h"
 #include "nbt.h"
 
+int8_t ParseInt8(const char* p, int32_t startByte) {
+	return (p[startByte] & 0xff);
+}
+
+std::pair<bool, int32_t> IsChunkKey(std::string_view key) {
+	auto tag_test = [](char tag) {
+		return ((33 <= tag && tag <= 64) || tag == 118);
+		};
+
+	if (key.size() == 9 || key.size() == 10)
+		return std::make_pair(tag_test(key[8]), ParseInt8(key.data(), 8));
+	else if (key.size() == 13 || key.size() == 14)
+		return std::make_pair(tag_test(key[12]), ParseInt8(key.data(), 12));
+
+	return std::make_pair(false, 0);
+}
+
+char ParseChunkKey(std::string_view key) {
+	char tag, subtag;
+
+	switch (key.size()) {
+	case 9: {
+		tag = key[8];
+		subtag = -1;
+	}
+		  break;
+	case 10: {
+		tag = key[8];
+		subtag = key[9];
+	}
+		   break;
+	case 13: {
+		tag = key[12];
+		subtag = -1;
+	}
+		   break;
+	case 14: {
+		tag = key[12];
+		subtag = key[13];
+	}
+		   break;
+	default:
+		break;
+	}
+
+	return tag;
+}
+
 namespace {
 	class NullLogger : public leveldb::Logger {
 	public:
@@ -247,13 +295,31 @@ namespace smokey_bedrock_parser {
 				log::trace("AutonomousEntities:");
 				ParseNbt("AutonomousEntities: ", key_data, int32_t(value_size), tag_list);
 			}
-			else if (strncmp(key_name, "digp", key_size) == 0) {
+			else if (strncmp(key_name, "digp", 4) == 0) {
 				for (uint32_t i = 0; i < value_size; i += 8) {
 					actor_ids.push_back(*(uint64_t*)(key_data + i));
 				}
 			}
+			else if (strncmp(key_name, "actorprefix", 11) == 0) {
+				log::trace("actorprefix:");
+				ParseNbt("actorprefix: ", key_data, int32_t(value_size), tag_list);
+			}
+			else if (IsChunkKey({ key_data, key_size }).first) {
+				int32_t chunk_tag = ParseChunkKey({ key_data, key_size });
+				log::info("YEAHHHHHH - {}", chunk_tag);
+
+				switch (chunk_tag) {
+				case 0x32:
+					log::info("Chunk-32");
+					ParseNbt("Chunk-32: ", key_data, int32_t(value_size), tag_list);
+					break;
+				default:
+					break;
+				}
+			}
 			else {
 				log::info("Unknown chunk - key_size={} value_size={}", key_size, value_size);
+
 			}
 		}
 
@@ -267,7 +333,7 @@ namespace smokey_bedrock_parser {
 			db->Get(read_options, leveldb::Slice(key, 19), &data);
 			ParseNbt("actorprefix: ", data.data(), data.size(), actor_list);
 		}
-		
+
 		for (auto village_id : villages) {
 			std::string data;
 			NbtTagList village_list;

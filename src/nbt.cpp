@@ -154,7 +154,7 @@ namespace smokey_bedrock_parser {
 		}
 
 		log::trace("{}NBT Decode End ({} tags)", makeIndent(indent, header), tag_list.size());
-		log::info("{}", nbt_json.nbt.dump(4));
+		log::info("{}", nbt_json.nbt.dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 
 		return 0;
 	}
