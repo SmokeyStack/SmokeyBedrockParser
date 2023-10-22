@@ -5,7 +5,8 @@
 #include <leveldb/env.h>
 #include <leveldb/options.h>
 #include <leveldb/decompress_allocator.h>
-#include "leveldb/zlib_compressor.h"
+#include <leveldb/zlib_compressor.h>
+#include <regex>
 
 #include "logger.h"
 #include "nbt.h"
@@ -297,6 +298,12 @@ namespace smokey_bedrock_parser {
 		std::vector<uint64_t> actor_ids;
 		leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
 
+		const std::regex village_dweller_regex("VILLAGE_[0-9a-f\\-]+_DWELLERS");
+		const std::regex village_info_regex("VILLAGE_[A-Za-z]+_[0-9a-f\\-]+_INFO");
+		const std::regex village_player_regex("VILLAGE_[0-9a-f\\-]+_PLAYERS");
+		const std::regex village_poi_regex("VILLAGE_[0-9a-f\\-]+_POI");
+		const std::regex map_regex("map_\\-[0-9]+");
+
 		for (it->SeekToFirst(); it->Valid(); it->Next()) {
 			key = it->key();
 			key_size = (int)key.size();
@@ -336,21 +343,29 @@ namespace smokey_bedrock_parser {
 				log::info("Found key - game_flatworldlayers");
 				ParseNbt("game_flatworldlayers: ", key_data, int32_t(value_size), tag_list);
 			}
-			/*else if (strncmp(key_name, "VILLAGE_", 8) == 0) {
-				log::info("Village-{}",key_name);
+			else if (strncmp(key_name, "VILLAGE_", 8) == 0) {
+				log::info("Village-{}", key.ToString());
 				char village_id[37];
-				char rectype[9];
-				memcpy(village_id, key_name + 8, 36);
+				char dimension_name[9];
+
+				memcpy(dimension_name, key_name + 8, 9);
+
+				memcpy(village_id, key_name + sizeof(dimension_name) + 9, 36);
+
 				log::info("Village ID-{}", village_id);
 
-				village_id[36] = '\0';
+				if (std::regex_match(key.ToString(), village_info_regex)) {
+					villages.push_back(std::string((std::string)dimension_name + "_" + (std::string)village_id));
+				}
+
+				/*village_id[36] = '\0';
 				memcpy(rectype, key_name + 45, key_size - 45);
 				log::info("Village RecType-{}, {}", rectype, rectype[key_size - 45]);
 				rectype[key_size - 45] = 'h';
 				if (strncmp(rectype, "INFO", 5) == 0) {
 					villages.push_back(village_id);
-				}
-			}*/
+				}*/
+			}
 			else if (strncmp(key_name, "AutonomousEntities", key_size) == 0) {
 				log::info("Found key - AutonomousEntities");
 				ParseNbt("AutonomousEntities: ", key_data, int32_t(value_size), tag_list);
@@ -402,24 +417,23 @@ namespace smokey_bedrock_parser {
 
 			db->Get(read_options, leveldb::Slice(key, 19), &data);
 
-			log::info("{}", ParseNbt("actorprefix: ", data.data(), data.size(), actor_list).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
+			//log::info("{}", ParseNbt("actorprefix: ", data.data(), data.size(), actor_list).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 		}
 
-		/*
-		for (auto village_id : villages) {
+		for (auto& village_id : villages) {
 			std::string data;
-			NbtTagList village_list;
+			NbtTagList info_tags, player_tags, dweller_tags, poi_tags;
 			leveldb::ReadOptions read_options;
+			log::info("Que? - {}", village_id);
 			db->Get(read_options, ("VILLAGE_" + village_id + "_INFO"), &data);
-			ParseNbt("village_info: ", data.data(), data.size(), village_list);
+			log::info("{}", ParseNbt("village_info: ", data.data(), data.size(), info_tags).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 			db->Get(read_options, ("VILLAGE_" + village_id + "_PLAYERS"), &data);
-			ParseNbt("village_info: ", data.data(), data.size(), village_list);
+			log::info("{}", ParseNbt("village_players: ", data.data(), data.size(), player_tags).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 			db->Get(read_options, ("VILLAGE_" + village_id + "_DWELLERS"), &data);
-			ParseNbt("village_info: ", data.data(), data.size(), village_list);
+			log::info("{}", ParseNbt("village_dwellers: ", data.data(), data.size(), dweller_tags).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 			db->Get(read_options, ("VILLAGE_" + village_id + "_POI"), &data);
-			ParseNbt("village_info: ", data.data(), data.size(), village_list);
+			log::info("{}", ParseNbt("village_poi: ", data.data(), data.size(), poi_tags).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 		}
-		*/
 
 		log::info("Read {} records", record_count);
 		log::info("Status: {}", it->status().ToString());
