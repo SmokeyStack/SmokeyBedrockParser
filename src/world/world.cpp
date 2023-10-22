@@ -9,9 +9,16 @@
 
 #include "logger.h"
 #include "nbt.h"
+#include "json.hpp"
 
 int8_t ParseInt8(const char* p, int32_t startByte) {
 	return (p[startByte] & 0xff);
+}
+
+int32_t ParseInt32(const char* p, int32_t startByte) {
+	int32_t ret;
+	memcpy(&ret, &p[startByte], 4);
+	return ret;
 }
 
 std::pair<bool, int32_t> IsChunkKey(std::string_view key) {
@@ -27,35 +34,106 @@ std::pair<bool, int32_t> IsChunkKey(std::string_view key) {
 	return std::make_pair(false, 0);
 }
 
-char ParseChunkKey(std::string_view key) {
-	char tag, subtag;
+// https://learn.microsoft.com/en-us/minecraft/creator/documents/actorstorage
+enum class ChunkTag : char {
+	Data3D = 43,
+	Version, // This was moved to the front as needed for the extended heights feature. Old chunks will not have this data.
+	Data2D,
+	Data2DLegacy,
+	SubChunkPrefix,
+	LegacyTerrain,
+	BlockEntity,
+	Entity,
+	PendingTicks,
+	LegacyBlockExtraData,
+	BiomeState,
+	FinalizedState,
+	ConversionData, // data that the converter provides, that are used at runtime for things like blending
+	BorderBlocks,
+	HardcodedSpawners,
+	RandomTicks,
+	CheckSums,
+	GenerationSeed,
+	GeneratedPreCavesAndCliffsBlending = 61, // not used, DON'T REMOVE
+	BlendingBiomeHeight = 62, // not used, DON'T REMOVE
+	MetaDataHash,
+	BlendingData,
+	ActorDigestVersion,
+	LegacyVersion = 118,
+};
+
+struct ChunkData {
+	int32_t chunk_x;
+	int32_t chunk_z;
+	int32_t chunk_dimension_id;
+	ChunkTag chunk_tag;
+	int32_t chunk_type_sub;
+	std::string dimension_name;
+};
+
+ChunkData ParseChunkKey(std::string_view key) {
+	ChunkData chunk_data;
+
+	chunk_data.chunk_x = key[0];
+	chunk_data.chunk_z = key[4];
+	chunk_data.chunk_type_sub = 0;
 
 	switch (key.size()) {
 	case 9: {
-		tag = key[8];
-		subtag = -1;
+		chunk_data.chunk_dimension_id = 0;
+		chunk_data.dimension_name = "overworld";
+		chunk_data.chunk_tag = (ChunkTag)key[8];
 	}
 		  break;
 	case 10: {
-		tag = key[8];
-		subtag = key[9];
+		chunk_data.chunk_dimension_id = 0;
+		chunk_data.dimension_name = "overworld";
+		chunk_data.chunk_tag = (ChunkTag)key[8];
+		chunk_data.chunk_type_sub = key[9];
 	}
 		   break;
 	case 13: {
-		tag = key[12];
-		subtag = -1;
+		chunk_data.chunk_dimension_id = key[8];
+		chunk_data.dimension_name = "nether";
+		chunk_data.chunk_tag = (ChunkTag)key[12];
+
+		if (chunk_data.chunk_dimension_id == 0x32373639) {
+			chunk_data.chunk_dimension_id = 2;
+		}
+		if (chunk_data.chunk_dimension_id == 0x33373639) {
+			chunk_data.chunk_dimension_id = 1;
+		}
+
+		// check for new dim id's
+		if (chunk_data.chunk_dimension_id != 1 && chunk_data.chunk_dimension_id != 2) {
+			smokey_bedrock_parser::log::warn("UNKNOWN -- Found new chunkDimId=0x{:x} -- Did Bedrock finally get custom dimensions? Or did Mojang add a new dimension?", chunk_data.chunk_dimension_id);
+		}
 	}
 		   break;
 	case 14: {
-		tag = key[12];
-		subtag = key[13];
+		chunk_data.chunk_dimension_id = key[8];
+		chunk_data.dimension_name = "nether";
+		chunk_data.chunk_tag = (ChunkTag)key[12];
+		chunk_data.chunk_type_sub = key[13];
+
+		if (chunk_data.chunk_dimension_id == 0x32373639) {
+			chunk_data.chunk_dimension_id = 2;
+		}
+		if (chunk_data.chunk_dimension_id == 0x33373639) {
+			chunk_data.chunk_dimension_id = 1;
+		}
+
+		// check for new dim id's
+		if (chunk_data.chunk_dimension_id != 1 && chunk_data.chunk_dimension_id != 2) {
+			smokey_bedrock_parser::log::warn("UNKNOWN -- Found new chunk_dimension_id=0x{:x} -- Did Bedrock finally get custom dimensions? Or did Mojang add a new dimension?", chunk_data.chunk_dimension_id);
+		}
 	}
 		   break;
 	default:
 		break;
 	}
 
-	return tag;
+	return chunk_data;
 }
 
 namespace {
@@ -97,13 +175,19 @@ namespace smokey_bedrock_parser {
 		// create a reusable memory space for decompression so it allocates less
 		leveldb::ReadOptions readOptions;
 		readOptions.decompress_allocator = new leveldb::DecompressAllocator();
+
+		for (int32_t i = 0; i < 3; i++) {
+			dimensions.push_back(std::make_unique<Dimension>());
+			dimensions[i]->set_dimension_id(i);
+			dimensions[i]->set_dimension_name(dimension_id_names[i]);
+		}
 	}
 
 	int32_t MinecraftWorldLevelDB::ParseLevelFile(std::string file_name) {
-
 		FILE* file = fopen(file_name.c_str(), "rb");
 		if (!file) {
-			log::error("Failed to open input file (fn={} error={} ({}))", file_name, strerror(errno), errno);
+			log::error("Failed to open input file (file name={} error={} ({}))", file_name, strerror(errno), errno);
+
 			return -1;
 		}
 
@@ -112,82 +196,59 @@ namespace smokey_bedrock_parser {
 		fread(&format_version, sizeof(int32_t), 1, file);
 		fread(&buffer_length, sizeof(int32_t), 1, file);
 
-		log::info("ParseLevelFile: name={} version={} len={}", file_name, format_version, buffer_length);
+		log::info("ParseLevelFile: name={} version={} length={}", file_name, format_version, buffer_length);
 
 		int32_t result = -2;
 
 		if (buffer_length > 0) {
 			char* buffer = new char[buffer_length];
+
 			fread(buffer, 1, buffer_length, file);
 			fclose(file);
 
 			NbtTagList tag_list;
-			result = ParseNbt("level.dat: ", buffer, buffer_length, tag_list);
-		}
 
-		return 0;
+			result = ParseNbt("level.dat: ", buffer, buffer_length, tag_list).first;
 
-		/*
+			if (result == 0) {
+				nbt::tag_compound tag_compound = tag_list[0].second->as<nbt::tag_compound>();
 
-		int32_t fVersion;
-		int32_t bufLen;
-		fread(&fVersion, sizeof(int32_t), 1, fp);
-		fread(&bufLen, sizeof(int32_t), 1, fp);
+				set_world_spawn_x(tag_compound["SpawnX"].as<nbt::tag_int>().get());
 
-		log::info("parseLevelFile: name={} version={} len={}", fname, fVersion, bufLen);
+				set_world_spawn_y(tag_compound["SpawnY"].as<nbt::tag_int>().get());
 
-		int32_t ret = -2;
-		if (bufLen > 0) {
-			// read content
-			char* buf = new char[bufLen];
-			fread(buf, 1, bufLen, fp);
-			fclose(fp);
+				set_world_spawn_z(tag_compound["SpawnZ"].as<nbt::tag_int>().get());
 
-			MyNbtTagList tagList;
-			ret = parseNbt("level.dat: ", buf, bufLen, tagList);
+				log::info("Found World Spawn: x={} y={} z={}",
+					get_world_spawn_x(),
+					get_world_spawn_y(),
+					get_world_spawn_z());
 
-			if (ret == 0) {
-				nbt::tag_compound tc = tagList[0].second->as<nbt::tag_compound>();
-
-				setWorldSpawnX(tc["SpawnX"].as<nbt::tag_int>().get());
-				setWorldSpawnY(tc["SpawnY"].as<nbt::tag_int>().get());
-				setWorldSpawnZ(tc["SpawnZ"].as<nbt::tag_int>().get());
-				log::info("  Found World Spawn: x={} y={} z={}",
-					getWorldSpawnX(),
-					getWorldSpawnY(),
-					getWorldSpawnZ());
-
-				setWorldSeed(tc["RandomSeed"].as<nbt::tag_long>().get());
+				set_world_seed(tag_compound["RandomSeed"].as<nbt::tag_long>().get());
 			}
 
-			delete[] buf;
+			delete[] buffer;
 		}
 		else {
-			fclose(fp);
+			fclose(file);
 		}
 
-		return ret;
-		*/
+		return result;
 	}
 
 	int32_t MinecraftWorldLevelDB::init(std::string db_directory) {
-		int32_t ret = ParseLevelFile(std::string(db_directory + "/level.dat"));
-		if (ret != 0) {
+		int32_t result = ParseLevelFile(std::string(db_directory + "/level.dat"));
+
+		if (result != 0) {
 			log::error("Failed to parse level.dat file.  Exiting...");
-			log::error("** Hint: --db must point to the dir which contains level.dat");
+
 			return -1;
 		}
 
-		ret = ParseLevelName(std::string(db_directory + "/levelname.txt"));
-		if (ret != 0) {
-			log::warn("WARNING: Failed to parse levelname.txt file.");
-			log::warn("** Hint: --db must point to the dir which contains levelname.txt");
-		}
+		result = ParseLevelName(std::string(db_directory + "/levelname.txt"));
 
-		// update dimension data
-		/*for (int32_t i = 0; i < kDimIdCount; i++) {
-			dimDataList[i]->setWorldInfo(getWorldName(), getWorldSpawnX(), getWorldSpawnZ(), getWorldSeed());
-		}*/
+		if (result != 0)
+			log::warn("WARNING: Failed to parse levelname.txt file.");
 
 		return 0;
 	}
@@ -231,10 +292,9 @@ namespace smokey_bedrock_parser {
 		size_t value_size;
 		const char* key_name;
 		const char* key_data;
-		std::string dimension_name, chunk_string;
+		std::string chunk_string;
 		std::vector<std::string> villages;
 		std::vector<uint64_t> actor_ids;
-
 		leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
 
 		for (it->SeekToFirst(); it->Valid(); it->Next()) {
@@ -248,7 +308,7 @@ namespace smokey_bedrock_parser {
 
 			if ((record_count % 100) == 0) {
 				double percentage = (double)record_count / (double)total_record_count;
-				log::info("  Processing records: {} / {} ({:.1f}%)", record_count, total_record_count, percentage * 100.0);
+				log::info("Processing records: {} / {} ({:.1f}%)", record_count, total_record_count, percentage * 100.0);
 			}
 
 			/**
@@ -256,24 +316,24 @@ namespace smokey_bedrock_parser {
 				Sources for more NBT data: https://minecraft.wiki/w/Bedrock_Edition_level_format/Other_data_format
 			*/;
 			if (strncmp(key_name, "BiomeData", key_size) == 0) {
-				log::info("BiomeData:");
+				log::info("Found key - BiomeData");
 				ParseNbt("BiomeData: ", key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "Overworld", key_size) == 0) {
-				log::info("Overworld:");
+				log::info("Found key - Overworld");
 				ParseNbt("Overworld: ", key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "~local_player", key_size) == 0) {
-				log::info("Local Player:");
+				log::info("Found key - ~local_player");
 				ParseNbt("Local Player: ", key_data, int32_t(value_size), tag_list);
 			}
 			else if ((key_size >= 7) && (strncmp(key_name, "player_", 7) == 0)) {
 				std::string player_remote_Id = std::string(&key_name[strlen("player_")], key_size - strlen("player_"));
-				log::trace("Remote Player (id={}) value:", player_remote_Id);
+				log::info("Found key - player_{}", player_remote_Id);
 				ParseNbt("Remote Player: ", key_data, int32_t(key_data), tag_list);
 			}
 			else if (strncmp(key_name, "game_flatworldlayers", key_size) == 0) {
-				log::trace("game_flatworldlayers value: (todo)");
+				log::info("Found key - game_flatworldlayers");
 				ParseNbt("game_flatworldlayers: ", key_data, int32_t(value_size), tag_list);
 			}
 			/*else if (strncmp(key_name, "VILLAGE_", 8) == 0) {
@@ -292,7 +352,7 @@ namespace smokey_bedrock_parser {
 				}
 			}*/
 			else if (strncmp(key_name, "AutonomousEntities", key_size) == 0) {
-				log::trace("AutonomousEntities:");
+				log::info("Found key - AutonomousEntities");
 				ParseNbt("AutonomousEntities: ", key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "digp", 4) == 0) {
@@ -301,39 +361,51 @@ namespace smokey_bedrock_parser {
 				}
 			}
 			else if (strncmp(key_name, "actorprefix", 11) == 0) {
-				log::trace("actorprefix:");
+				log::info("Found key - actorprefix");
 				ParseNbt("actorprefix: ", key_data, int32_t(value_size), tag_list);
 			}
-			else if (IsChunkKey({ key_data, key_size }).first) {
-				int32_t chunk_tag = ParseChunkKey({ key_data, key_size });
-				log::info("YEAHHHHHH - {}", chunk_tag);
+			else if (IsChunkKey({ key_name,key_size }).first) {
+				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
+				chunk_string = chunk_data.dimension_name + "-chunk: ";
+				sprintf(temp_string, "%d %d (type=0x%02x) (subtype=0x%02x) (size=%d)", chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_tag,
+					chunk_data.chunk_type_sub, (int32_t)value_size);
+				chunk_string += temp_string;
+				log::info("{}", chunk_string);
 
-				switch (chunk_tag) {
-				case 0x32:
-					log::info("Chunk-32");
-					ParseNbt("Chunk-32: ", key_data, int32_t(value_size), tag_list);
-					break;
+				switch (chunk_data.chunk_tag) {
+				case ChunkTag::SubChunkPrefix: {
+					if (key_data[0] != 0)
+						dimensions[chunk_data.chunk_dimension_id]->AddChunk(7, chunk_data.chunk_x, chunk_data.chunk_type_sub, chunk_data.chunk_z, key_data, value_size);
+				}
+											 break;
 				default:
 					break;
 				}
 			}
 			else {
-				log::info("Unknown chunk - key_size={} value_size={}", key_size, value_size);
+				log::info("Unknown record - key_size={} value_size={}", key_size, value_size);
 
 			}
 		}
 
-		/*
+		NbtJson test;
+		test.name = "nbt";
+
 		for (auto actor_id : actor_ids) {
 			std::string data;
 			char key[19] = "actorprefix";
+
 			memcpy(key + 11, &actor_id, 8);
+
 			NbtTagList actor_list;
 			leveldb::ReadOptions read_options;
+
 			db->Get(read_options, leveldb::Slice(key, 19), &data);
-			ParseNbt("actorprefix: ", data.data(), data.size(), actor_list);
+
+			log::info("{}", ParseNbt("actorprefix: ", data.data(), data.size(), actor_list).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 		}
 
+		/*
 		for (auto village_id : villages) {
 			std::string data;
 			NbtTagList village_list;
@@ -352,9 +424,9 @@ namespace smokey_bedrock_parser {
 		log::info("Read {} records", record_count);
 		log::info("Status: {}", it->status().ToString());
 
-		if (!it->status().ok()) {
+		if (!it->status().ok())
 			log::warn("LevelDB operation returned status={}", it->status().ToString());
-		}
+
 		delete it;
 
 		return 0;

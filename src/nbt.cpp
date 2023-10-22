@@ -13,11 +13,6 @@ std::string makeIndent(int32_t indent, const char* hdr) {
 	return s;
 }
 
-typedef struct NbtJson {
-	std::string name;
-	nlohmann::json nbt;
-};
-
 namespace smokey_bedrock_parser {
 	int32_t global_nbt_list_number = 0;
 	int32_t global_nbt_compound_number = 0;
@@ -120,7 +115,7 @@ namespace smokey_bedrock_parser {
 		return json;
 	}
 
-	int32_t ParseNbt(const char* header, const char* buffer, int32_t buffer_length, NbtTagList& tag_list) {
+	std::pair<int32_t, nlohmann::json> ParseNbt(const char* header, const char* buffer, int32_t buffer_length, NbtTagList& tag_list) {
 		int32_t indent = 0;
 		log::trace("{}NBT Decode Start", makeIndent(indent, header));
 		global_nbt_list_number = 0;
@@ -150,12 +145,12 @@ namespace smokey_bedrock_parser {
 		nbt_json.name = "nbt";
 
 		for (const auto& nbt_tag : tag_list) {
-			nbt_json.nbt = ParseNbtTag(header, indent, nbt_tag);
+			nbt_json.nbt.push_back(ParseNbtTag(header, indent, nbt_tag));
 		}
 
 		log::trace("{}NBT Decode End ({} tags)", makeIndent(indent, header), tag_list.size());
-		log::info("{}", nbt_json.nbt.dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
+		//log::info("{}", nbt_json.nbt.dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 
-		return 0;
+		return std::make_pair(0, nbt_json.nbt);
 	}
 }

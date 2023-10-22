@@ -4,6 +4,7 @@
 #include <leveldb/db.h>
 
 #include "logger.h"
+#include "world/dimension.h"
 
 
 namespace smokey_bedrock_parser {
@@ -70,6 +71,8 @@ namespace smokey_bedrock_parser {
 		std::unique_ptr<leveldb::Options> db_options;
 		int32_t total_record_count;
 	public:
+		std::vector<std::unique_ptr<Dimension>> dimensions;
+
 		MinecraftWorldLevelDB();
 
 		~MinecraftWorldLevelDB() {
@@ -79,23 +82,27 @@ namespace smokey_bedrock_parser {
 		int32_t ParseLevelFile(std::string file_name);
 
 		int32_t ParseLevelName(std::string file_name) {
-			FILE* fp = fopen(file_name.c_str(), "r");
-            if (!fp) {
-                log::error("Failed to open input file (fn={} error={} ({}))", file_name, strerror(errno), errno);
-                return -1;
-            }
+			FILE* file = fopen(file_name.c_str(), "r");
 
-            char buffer[1025];
-            memset(buffer, 0, 1025);
-            fgets(buffer, 1024, fp);
+			if (!file) {
+				log::error("Failed to open input file (fn={} error={} ({}))", file_name, strerror(errno), errno);
 
-            set_world_name(buffer);
+				return -1;
+			}
 
-            log::info("levelname.txt: Level name is '{}'", strlen(buffer) > 0 ? buffer : "(UNKNOWN)");
-            
-            fclose(fp);
+			char buffer[1025];
 
-            return 0;
+			memset(buffer, 0, 1025);
+
+			fgets(buffer, 1024, file);
+
+			set_world_name(buffer);
+
+			log::info("levelname.txt: Level name is '{}'", strlen(buffer) > 0 ? buffer : "(UNKNOWN)");
+
+			fclose(file);
+
+			return 0;
 		}
 
 		int32_t init(std::string db_directory);
