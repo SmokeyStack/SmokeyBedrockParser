@@ -7,3 +7,6 @@
 [submodule "third-party/spdlog"]
 	path = third-party/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "third-party/glfw"]
+	path = third-party/glfw
+	url = https://github.com/glfw/glfw.git
