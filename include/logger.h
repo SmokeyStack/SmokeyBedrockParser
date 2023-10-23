@@ -20,11 +20,8 @@ namespace smokey_bedrock_parser {
 		Error = spdlog::level::err
 	};
 
-
-	// setup a console-only logger since we don't know the output path
 	void SetupLoggerStage1();
 
-	// setup both console logger and file logger
 	void SetupLoggerStage2(const std::filesystem::path& outdir, Level consoleLevel, Level fileLevel);
 
 } // namespace smokey_bedrock_parser
