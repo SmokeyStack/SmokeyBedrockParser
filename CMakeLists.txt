@@ -21,6 +21,7 @@ set(LIB_NAME SmokeyBedrockParserLib)
 project(SmokeyBedrockParser VERSION 0.1)
 
 find_package(OpenGL REQUIRED)
+find_package(unofficial-nativefiledialog CONFIG REQUIRED)
 
 option(LEVELDB_BUILD_TESTS OFF)
 set(NBT_BUILD_TESTS OFF CACHE INTERNAL "Don't build nbt++ tests")
@@ -53,7 +54,7 @@ target_include_directories(${LIB_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${LIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 target_link_libraries(${LIB_NAME}
-  leveldb spdlog nbt++ glfw OpenGL::GL
+  leveldb spdlog nbt++ glfw OpenGL::GL unofficial::nativefiledialog::nfd
 )
 
 add_executable(${BIN_NAME} src/SmokeyBedrockParser.cpp)

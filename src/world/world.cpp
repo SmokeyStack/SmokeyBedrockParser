@@ -11,6 +11,7 @@
 #include "logger.h"
 #include "nbt.h"
 #include "json.hpp"
+#include "imgui/imgui.h"
 
 int8_t ParseInt8(const char* p, int32_t startByte) {
 	return (p[startByte] & 0xff);
@@ -199,7 +200,7 @@ namespace smokey_bedrock_parser {
 
 		log::info("ParseLevelFile: name={} version={} length={}", file_name, format_version, buffer_length);
 
-		int32_t result = -2;
+		std::pair<int32_t, nlohmann::json> result;
 
 		if (buffer_length > 0) {
 			char* buffer = new char[buffer_length];
@@ -209,9 +210,9 @@ namespace smokey_bedrock_parser {
 
 			NbtTagList tag_list;
 
-			result = ParseNbt("level.dat: ", buffer, buffer_length, tag_list).first;
+			result = ParseNbt("level.dat: ", buffer, buffer_length, tag_list);
 
-			if (result == 0) {
+			if (result.first == 0) {
 				nbt::tag_compound tag_compound = tag_list[0].second->as<nbt::tag_compound>();
 
 				set_world_spawn_x(tag_compound["SpawnX"].as<nbt::tag_int>().get());
@@ -226,6 +227,18 @@ namespace smokey_bedrock_parser {
 					get_world_spawn_z());
 
 				set_world_seed(tag_compound["RandomSeed"].as<nbt::tag_long>().get());
+
+				for (auto& [key, value] : result.second[0][""].items())
+				{
+					log::info("{}-{}", key, value.dump());
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet;
+					ImGui::TreeNodeEx(key.c_str());
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text(value.dump().c_str());
+					ImGui::NextColumn();
+				}
 			}
 
 			delete[] buffer;
@@ -234,7 +247,7 @@ namespace smokey_bedrock_parser {
 			fclose(file);
 		}
 
-		return result;
+		return result.first;
 	}
 
 	int32_t MinecraftWorldLevelDB::init(std::string db_directory) {
@@ -254,7 +267,7 @@ namespace smokey_bedrock_parser {
 		return 0;
 	}
 
-	int32_t MinecraftWorldLevelDB::dbOpen(std::string db_directory) {
+	int32_t MinecraftWorldLevelDB::OpenDB(std::string db_directory) {
 		log::info("DB Open: dir={}", db_directory);
 		db_options = std::make_unique<leveldb::Options>();
 		leveldb::Status status = leveldb::DB::Open(*db_options, std::string(db_directory + "/db").c_str(), &db);
@@ -280,7 +293,7 @@ namespace smokey_bedrock_parser {
 		return 0;
 	}
 
-	int32_t MinecraftWorldLevelDB::dbParse() {
+	int32_t MinecraftWorldLevelDB::ParseDB() {
 		char temp_string[256];
 		log::info("Parsing all leveldb records");
 
