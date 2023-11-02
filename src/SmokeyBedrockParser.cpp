@@ -229,6 +229,7 @@ int main(int argc, char** argv) {
 			ImGui::End();
 		}
 		if (show_app_property_editor) {
+			ImGui::SetNextWindowSize(ImVec2(430, 450), ImGuiCond_FirstUseEver);
 			if (!ImGui::Begin("Example: Property editor", &show_app_property_editor)) {
 				ImGui::End();
 			}

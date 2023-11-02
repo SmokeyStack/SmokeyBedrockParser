@@ -228,16 +228,48 @@ namespace smokey_bedrock_parser {
 
 				set_world_seed(tag_compound["RandomSeed"].as<nbt::tag_long>().get());
 
+				int32_t item_count = 0;
+
 				for (auto& [key, value] : result.second[0][""].items())
 				{
+					ImGui::PushID(item_count);
 					log::info("{}-{}", key, value.dump());
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
+					ImGui::AlignTextToFramePadding();
 					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet;
-					ImGui::TreeNodeEx(key.c_str());
+					ImGui::TreeNodeEx("Field", flags, key.c_str());
 					ImGui::TableSetColumnIndex(1);
 					ImGui::Text(value.dump().c_str());
-					ImGui::NextColumn();
+
+					//if (node_open)
+					//{
+					//	static float placeholder_members[8] = { 0.0f, 0.0f, 1.0f, 3.1416f, 100.0f, 999.0f };
+					//	for (int i = 0; i < 8; i++)
+					//	{
+					//		ImGui::PushID(i); // Use field index as identifier.
+
+					//		// Here we use a TreeNode to highlight on hover (we could use e.g. Selectable as well)
+					//		ImGui::TableNextRow();
+					//		ImGui::TableSetColumnIndex(0);
+					//		ImGui::AlignTextToFramePadding();
+					//		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet;
+					//		ImGui::TreeNodeEx("Field", flags, "Field_%d", i);
+
+					//		ImGui::TableSetColumnIndex(1);
+					//		ImGui::SetNextItemWidth(-FLT_MIN);
+					//		if (i >= 5)
+					//			ImGui::InputFloat("##value", &placeholder_members[i], 1.0f);
+					//		else
+					//			ImGui::DragFloat("##value", &placeholder_members[i], 0.01f);
+					//		ImGui::NextColumn();
+
+					//		ImGui::PopID();
+					//	}
+					//	ImGui::TreePop();
+					//}
+					ImGui::PopID();
+					item_count++;
 				}
 			}
 
