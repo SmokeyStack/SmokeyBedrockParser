@@ -234,17 +234,10 @@ int main(int argc, char** argv) {
 				ImGui::End();
 			}
 
-			if (ImGui::BeginTable("##split", 2, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY)) {
-				ImGui::TableSetupScrollFreeze(0, 1);
-				ImGui::TableSetupColumn("Object");
-				ImGui::TableSetupColumn("Contents");
-				ImGui::TableHeadersRow();
-
-				world->init(argv[1]);
-				world->OpenDB(argv[1]);
-
-				ImGui::EndTable();
-			}
+			ImGui::Columns(2, "nbt_view");
+			world->init(argv[1]);
+			world->OpenDB(argv[1]);
+			ImGui::Columns(1);
 
 			ImGui::End();
 		}
