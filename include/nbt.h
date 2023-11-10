@@ -19,4 +19,5 @@ namespace smokey_bedrock_parser {
 	typedef std::vector<NbtTag> NbtTagList;
 
 	std::pair<int32_t, nlohmann::json> ParseNbt(const char* header, const char* buffer, int32_t buffer_length, NbtTagList& tag_list);
+	int32_t ParseNbtVillage(NbtTagList& tags_info, NbtTagList& tags_player, NbtTagList& tags_dweller, NbtTagList& tags_poi);
 }

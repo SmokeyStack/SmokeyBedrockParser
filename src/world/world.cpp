@@ -254,7 +254,7 @@ namespace smokey_bedrock_parser {
 		return 0;
 	}
 
-	int32_t MinecraftWorldLevelDB::dbOpen(std::string db_directory) {
+	int32_t MinecraftWorldLevelDB::OpenDB(std::string db_directory) {
 		log::info("DB Open: dir={}", db_directory);
 		db_options = std::make_unique<leveldb::Options>();
 		leveldb::Status status = leveldb::DB::Open(*db_options, std::string(db_directory + "/db").c_str(), &db);
@@ -280,7 +280,7 @@ namespace smokey_bedrock_parser {
 		return 0;
 	}
 
-	int32_t MinecraftWorldLevelDB::dbParse() {
+	int32_t MinecraftWorldLevelDB::ParseDB() {
 		char temp_string[256];
 		log::info("Parsing all leveldb records");
 
@@ -422,17 +422,30 @@ namespace smokey_bedrock_parser {
 
 		for (auto& village_id : villages) {
 			std::string data;
-			NbtTagList info_tags, player_tags, dweller_tags, poi_tags;
+			NbtTagList tags_info, tags_player, tags_dweller, tags_poi;
 			leveldb::ReadOptions read_options;
 			log::info("Que? - {}", village_id);
 			db->Get(read_options, ("VILLAGE_" + village_id + "_INFO"), &data);
-			log::info("{}", ParseNbt("village_info: ", data.data(), data.size(), info_tags).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
+			result = ParseNbt("village_info: ", data.data(), data.size(), tags_info).first;
+
+			if (result != 0) continue;
+
 			db->Get(read_options, ("VILLAGE_" + village_id + "_PLAYERS"), &data);
-			log::info("{}", ParseNbt("village_players: ", data.data(), data.size(), player_tags).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
+			result = ParseNbt("village_players: ", data.data(), data.size(), tags_player).first;
+
+			if (result != 0) continue;
+
 			db->Get(read_options, ("VILLAGE_" + village_id + "_DWELLERS"), &data);
-			log::info("{}", ParseNbt("village_dwellers: ", data.data(), data.size(), dweller_tags).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
+			result = ParseNbt("village_dwellers: ", data.data(), data.size(), tags_dweller).first;
+
+			if (result != 0) continue;
+
 			db->Get(read_options, ("VILLAGE_" + village_id + "_POI"), &data);
-			log::info("{}", ParseNbt("village_poi: ", data.data(), data.size(), poi_tags).second[0].dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
+			result = ParseNbt("village_poi: ", data.data(), data.size(), tags_poi).first;
+
+			if (result != 0) continue;
+
+			ParseNbtVillage(tags_info, tags_player, tags_dweller, tags_poi);
 		}
 
 		log::info("Read {} records", record_count);

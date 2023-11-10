@@ -25,9 +25,9 @@ int main(int argc, char** argv) {
 	
 	world = std::make_unique<MinecraftWorldLevelDB>();
 	world->init(argv[1]);
-	world->dbOpen(argv[1]);
-	world->dbParse();
-	world->dbClose();
+	world->OpenDB(argv[1]);
+	world->ParseDB();
+	world->CloseDB();
 	log::info("Done.");
 	log::info("====================================================================================================");
 

@@ -76,7 +76,7 @@ namespace smokey_bedrock_parser {
 		MinecraftWorldLevelDB();
 
 		~MinecraftWorldLevelDB() {
-			dbClose();
+			CloseDB();
 		}
 
 		int32_t ParseLevelFile(std::string file_name);
@@ -107,9 +107,9 @@ namespace smokey_bedrock_parser {
 
 		int32_t init(std::string db_directory);
 
-		int32_t dbOpen(std::string db_directory);
+		int32_t OpenDB(std::string db_directory);
 
-		int32_t dbClose() {
+		int32_t CloseDB() {
 			if (db != nullptr) {
 				delete db;
 				db = nullptr;
@@ -119,7 +119,7 @@ namespace smokey_bedrock_parser {
 
 		int32_t CalculateTotalRecords();
 
-		int32_t dbParse();
+		int32_t ParseDB();
 	};
 
 	extern std::unique_ptr<MinecraftWorldLevelDB> world;
