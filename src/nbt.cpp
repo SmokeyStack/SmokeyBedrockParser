@@ -1,5 +1,6 @@
 #include <iostream>
 #include <tuple>
+#include <stdint.h>
 
 #include "nbt.h"
 #include "logger.h"
@@ -246,8 +247,46 @@ namespace smokey_bedrock_parser {
 		}
 
 		// https://minecraft.wiki/w/Bedrock_Edition_level_format/Other_data_format#VILLAGE_[0-9a-f\\-]+_POI
-		// TODO
-		int32_t set_poi(nbt::tag_compound& tag) {
+		int32_t set_pois(nbt::tag_compound& tag) {
+			int64_t id, capacity, owner_count, weight;
+			int32_t x, y, z;
+
+			if (tag.has_key("POI", nbt::tag_type::List)) {
+				nbt::tag_list poi_list = tag["POI"].as<nbt::tag_list>();
+				log::info("{}", poi_list.size());
+
+				for (const auto& poi : poi_list) {
+					for (const auto& poi_compound : poi.as<nbt::tag_compound>()) {
+						if (poi_compound.second.get_type() == nbt::tag_type::List) {
+							nbt::tag_list poi_tag = poi_compound.second.as<nbt::tag_list>();
+							for (const auto& value : poi_tag) {
+								nbt::tag_compound value_compound = value.as<nbt::tag_compound>();
+								if (!value_compound["Skip"].as<nbt::tag_byte>().get()) {
+									capacity = value_compound["Capacity"].as<nbt::tag_long>().get();
+									log::info("InitEvent - {}", value_compound["InitEvent"].as<nbt::tag_string>().get();
+									log::info("Name - {}", value_compound["Name"].as<nbt::tag_string>().get();
+									owner_count= value_compound["OwnerCount"].as<nbt::tag_long>().get();
+									log::info("Radius - {}", value_compound["Radius"].as<nbt::tag_float>().get();
+									log::info("Skip - {}", value_compound["Skip"].as<nbt::tag_byte>().get();
+									log::info("SoundEvent - {}", value_compound["SoundEvent"].as<nbt::tag_string>().get();
+									log::info("Type - {}", value_compound["Type"].as<nbt::tag_int>().get();
+									log::info("UseAABB - {}", value_compound["UseAABB"].as<nbt::tag_byte>().get();
+									log::info("Weight - {}", value_compound["Weight"].as<nbt::tag_long>().get();
+									x = value_compound["X"].as<nbt::tag_int>().get();
+									y = value_compound["Y"].as<nbt::tag_int>().get();
+									z = value_compound["Z"].as<nbt::tag_int>().get();
+								}
+								else
+									log::info("We are skipping this POI.");
+							}
+						}
+						else
+							id = poi_compound.second.as<nbt::tag_long>().get();
+					}
+					village_payload["Village POIs"].push_back({ { "VillagerID", id }, {"Position", {{"x", x},{"y", y},{"z", z}}},{"Capacity", "Capacity"} });
+				}
+			}
+
 			return 0;
 		}
 
@@ -265,6 +304,7 @@ namespace smokey_bedrock_parser {
 		village_info->set_info(tags_info[0].second->as<nbt::tag_compound>());
 		village_info->set_players(tags_player[0].second->as<nbt::tag_compound>());
 		village_info->set_dwellers(tags_dweller[0].second->as<nbt::tag_compound>());
+		village_info->set_pois(tags_poi[0].second->as<nbt::tag_compound>());
 		village_info->print_info();
 
 		return 0;
