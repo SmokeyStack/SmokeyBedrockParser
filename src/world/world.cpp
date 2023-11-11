@@ -248,7 +248,7 @@ namespace smokey_bedrock_parser {
 
 			NbtTagList tag_list;
 
-			result = ParseNbt("level.dat: ", buffer, buffer_length, tag_list);
+			result = ParseNbt(buffer, buffer_length, tag_list);
 
 			if (result.first == 0) {
 				nbt::tag_compound tag_compound = tag_list[0].second->as<nbt::tag_compound>();
@@ -317,28 +317,28 @@ namespace smokey_bedrock_parser {
 			if (strncmp(key_name, "BiomeData", key_size) == 0) {
 				log::info("Found key - BiomeData");
 
-				ParseNbt("BiomeData: ", key_data, int32_t(value_size), tag_list);
+				ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "Overworld", key_size) == 0) {
 				log::info("Found key - Overworld");
 
-				ParseNbt("Overworld: ", key_data, int32_t(value_size), tag_list);
+				ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "~local_player", key_size) == 0) {
 				log::info("Found key - ~local_player");
 
-				ParseNbt("Local Player: ", key_data, int32_t(value_size), tag_list);
+				ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if ((key_size >= 7) && (strncmp(key_name, "player_", 7) == 0)) {
 				std::string player_remote_Id = std::string(&key_name[strlen("player_")], key_size - strlen("player_"));
 				log::info("Found key - player_{}", player_remote_Id);
 
-				ParseNbt("Remote Player: ", key_data, int32_t(key_data), tag_list);
+				ParseNbt(key_data, int32_t(key_data), tag_list);
 			}
 			else if (strncmp(key_name, "game_flatworldlayers", key_size) == 0) {
 				log::info("Found key - game_flatworldlayers");
 
-				ParseNbt("game_flatworldlayers: ", key_data, int32_t(value_size), tag_list);
+				ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "VILLAGE_", 8) == 0) {
 				log::info("Found key - Village-{}", key.ToString());
@@ -357,7 +357,7 @@ namespace smokey_bedrock_parser {
 			else if (strncmp(key_name, "AutonomousEntities", key_size) == 0) {
 				log::info("Found key - AutonomousEntities");
 
-				ParseNbt("AutonomousEntities: ", key_data, int32_t(value_size), tag_list);
+				ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "digp", 4) == 0) {
 				for (uint32_t i = 0; i < value_size; i += 8)
@@ -366,7 +366,7 @@ namespace smokey_bedrock_parser {
 			else if (strncmp(key_name, "actorprefix", 11) == 0) {
 				log::info("Found key - actorprefix");
 
-				ParseNbt("actorprefix: ", key_data, int32_t(value_size), tag_list);
+				ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if (IsChunkKey({ key_name,key_size }).first) {
 				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
@@ -413,22 +413,22 @@ namespace smokey_bedrock_parser {
 			NbtTagList tags_info, tags_player, tags_dweller, tags_poi;
 			leveldb::ReadOptions read_options;
 			db->Get(read_options, ("VILLAGE_" + village_id + "_INFO"), &data);
-			result = ParseNbt("village_info: ", data.data(), data.size(), tags_info).first;
+			result = ParseNbt(data.data(), data.size(), tags_info).first;
 
 			if (result != 0) continue;
 
 			db->Get(read_options, ("VILLAGE_" + village_id + "_PLAYERS"), &data);
-			result = ParseNbt("village_players: ", data.data(), data.size(), tags_player).first;
+			result = ParseNbt(data.data(), data.size(), tags_player).first;
 
 			if (result != 0) continue;
 
 			db->Get(read_options, ("VILLAGE_" + village_id + "_DWELLERS"), &data);
-			result = ParseNbt("village_dwellers: ", data.data(), data.size(), tags_dweller).first;
+			result = ParseNbt(data.data(), data.size(), tags_dweller).first;
 
 			if (result != 0) continue;
 
 			db->Get(read_options, ("VILLAGE_" + village_id + "_POI"), &data);
-			result = ParseNbt("village_poi: ", data.data(), data.size(), tags_poi).first;
+			result = ParseNbt(data.data(), data.size(), tags_poi).first;
 
 			if (result != 0) continue;
 

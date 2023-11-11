@@ -34,7 +34,6 @@ int main(int argc, char** argv) {
 	nfdchar_t* selected_folder = NULL;
 	static bool show_app_property_editor = false;
 
-	/*
 	world->init(argv[1]);
 	world->OpenDB(argv[1]);
 	world->ParseDB();
@@ -42,8 +41,7 @@ int main(int argc, char** argv) {
 	log::info("Done.");
 	log::info("====================================================================================================");
 
-
-	nfdchar_t* outPath = NULL;
+	/*nfdchar_t* outPath = NULL;
 	nfdresult_t result = NFD_OpenDialog(NULL, NULL, &outPath);
 
 	if (result == NFD_OKAY) {
@@ -53,8 +51,8 @@ int main(int argc, char** argv) {
 	}
 	else {
 		printf("Error: %s\n", NFD_GetError());
-	}
-	*/
+	}*/
+
 
 	glfwSetErrorCallback(GLFWErrorCallback);
 
@@ -172,7 +170,13 @@ int main(int argc, char** argv) {
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	while (!glfwWindowShouldClose(window)) {
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glfwSwapBuffers(window);
+
 		glfwPollEvents();
+
+		/*
 
 		// Start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
@@ -254,6 +258,8 @@ int main(int argc, char** argv) {
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(window);
+	*/
+
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();

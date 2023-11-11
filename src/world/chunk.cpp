@@ -144,7 +144,7 @@ namespace smokey_bedrock_parser {
 		NbtJson test;
 		test.name = "nbt";
 
-		test.nbt = ParseNbt(" ", &buffer[offset], buffer_length - offset, tag_list).second;
+		test.nbt = ParseNbt(&buffer[offset], buffer_length - offset, tag_list).second;
 		//log::info("{}", test.nbt.dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 
 		std::vector<std::string> chunk_palette_id(tag_list.size());

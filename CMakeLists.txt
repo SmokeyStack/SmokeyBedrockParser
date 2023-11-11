@@ -38,6 +38,9 @@ add_subdirectory(third-party/spdlog)
 add_subdirectory(third-party/libnbtplusplus)
 add_subdirectory(third-party/glfw)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+endif()
 
 # GOOGLE disables RTTI for leveldb so we will do the same
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

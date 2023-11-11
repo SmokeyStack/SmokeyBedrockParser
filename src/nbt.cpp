@@ -5,30 +5,21 @@
 #include "logger.h"
 #include "nbt.h"
 
-std::string makeIndent(int32_t indent, const char* hdr) {
-	std::string s;
-	s.append(hdr);
-	for (int32_t i = 0; i < indent; i++) {
-		s.append("  ");
-	}
-	return s;
-}
-
-bool renderKey(const std::string& name, const char* type, bool arr) {
+bool RenderKey(const std::string& name, const std::string& value, const char* type, bool arr) {
 	float px = ImGui::GetCursorPosX() + 18.0f;
-	static const char spaces[51] = {
+	/*static const char spaces[51] = {
 		"                                                 \0"
 	};
 	const char* spcptr = &(
 		spaces[50 - int(32.0f / (ImGui::CalcTextSize(" ").x))]
-		);
+		);*/
 	bool open = false;
 	bool show_tooltip = false;
 	if (arr) {
-		open = ImGui::TreeNodeEx(name.c_str(), 0, "%s%s", spcptr, name.c_str());
+		open = ImGui::TreeNodeEx(name.c_str(), 0);
 	}
 	else {
-		open = ImGui::TreeNodeEx(name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen, "%s%s", spcptr, name.c_str());
+		open = ImGui::TreeNodeEx(name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
 	}
 	ImGui::SameLine(px);
 	show_tooltip = ImGui::IsItemHovered();
@@ -39,6 +30,12 @@ bool renderKey(const std::string& name, const char* type, bool arr) {
 		ImGui::TextDisabled("%s", type);
 		ImGui::EndTooltip();
 	}
+
+	ImGui::NextColumn();
+	ImGui::PushID(name.c_str());
+	ImGui::Text(value.c_str());
+	ImGui::PopID();
+	ImGui::NextColumn();
 	return open;
 }
 
@@ -46,9 +43,7 @@ namespace smokey_bedrock_parser {
 	int32_t global_nbt_list_number = 0;
 	int32_t global_nbt_compound_number = 0;
 
-	nlohmann::json::object_t ParseNbtTag(const char* header, int& indent, const NbtTag& tag) {
-		log::trace("{}NBT Tag: {}", makeIndent(indent, header), tag.first);
-
+	nlohmann::json::object_t ParseNbtTag(const NbtTag& tag, bool render = false) {
 		nlohmann::json::object_t json;
 
 		nbt::tag_type nbt_type = tag.second->get_type();
@@ -56,18 +51,14 @@ namespace smokey_bedrock_parser {
 		switch (nbt_type) {
 		case nbt::tag_type::End:
 			log::trace("TAG_END");
+
 			break;
 		case nbt::tag_type::Byte: {
 			nbt::tag_byte value = tag.second->as<nbt::tag_byte>();
 			log::trace("TAG_BYTE: {}", value.get());
 			json[tag.first] = value.get();
 
-			renderKey(tag.first, "byte", false);
-			ImGui::NextColumn();
-			ImGui::PushID(tag.first.c_str());
-			ImGui::Text(json[tag.first].dump().c_str());
-			ImGui::PopID();
-			ImGui::NextColumn();
+			if (render) RenderKey(tag.first, json[tag.first].dump(), "byte", false);
 		}
 								break;
 		case nbt::tag_type::Short: {
@@ -75,12 +66,7 @@ namespace smokey_bedrock_parser {
 			log::trace("TAG_SHORT: {}", value.get());
 			json[tag.first] = value.get();
 
-			renderKey(tag.first, "short", false);
-			ImGui::NextColumn();
-			ImGui::PushID(tag.first.c_str());
-			ImGui::Text(json[tag.first].dump().c_str());
-			ImGui::PopID();
-			ImGui::NextColumn();
+			if (render) RenderKey(tag.first, json[tag.first].dump(), "short", false);
 		}
 								 break;
 		case nbt::tag_type::Int: {
@@ -88,12 +74,7 @@ namespace smokey_bedrock_parser {
 			log::trace("TAG_INT: {}", value.get());
 			json[tag.first] = value.get();
 
-			renderKey(tag.first, "int", false);
-			ImGui::NextColumn();
-			ImGui::PushID(tag.first.c_str());
-			ImGui::Text(json[tag.first].dump().c_str());
-			ImGui::PopID();
-			ImGui::NextColumn();
+			if (render) RenderKey(tag.first, json[tag.first].dump(), "int", false);
 		}
 							   break;
 		case nbt::tag_type::Long: {
@@ -101,12 +82,7 @@ namespace smokey_bedrock_parser {
 			log::trace("TAG_LONG: {}", value.get());
 			json[tag.first] = value.get();
 
-			renderKey(tag.first, "long", false);
-			ImGui::NextColumn();
-			ImGui::PushID(tag.first.c_str());
-			ImGui::Text(json[tag.first].dump().c_str());
-			ImGui::PopID();
-			ImGui::NextColumn();
+			if (render) RenderKey(tag.first, json[tag.first].dump(), "long", false);
 		}
 								break;
 		case nbt::tag_type::Float: {
@@ -114,12 +90,7 @@ namespace smokey_bedrock_parser {
 			log::trace("TAG_FLOAT: {}", value.get());
 			json[tag.first] = value.get();
 
-			renderKey(tag.first, "float", false);
-			ImGui::NextColumn();
-			ImGui::PushID(tag.first.c_str());
-			ImGui::Text(json[tag.first].dump().c_str());
-			ImGui::PopID();
-			ImGui::NextColumn();
+			if (render) RenderKey(tag.first, json[tag.first].dump(), "float", false);
 		}
 								 break;
 		case nbt::tag_type::Double: {
@@ -127,12 +98,7 @@ namespace smokey_bedrock_parser {
 			log::trace("TAG_DOUBLE: {}", value.get());
 			json[tag.first] = value.get();
 
-			renderKey(tag.first, "double", false);
-			ImGui::NextColumn();
-			ImGui::PushID(tag.first.c_str());
-			ImGui::Text(json[tag.first].dump().c_str());
-			ImGui::PopID();
-			ImGui::NextColumn();
+			if (render) RenderKey(tag.first, json[tag.first].dump(), "double", false);
 		}
 								  break;
 		case nbt::tag_type::Byte_Array:
@@ -142,35 +108,26 @@ namespace smokey_bedrock_parser {
 			log::trace("TAG_STRING: {}", value.get());
 			json[tag.first] = value.get();
 
-			renderKey(tag.first, "string", false);
-			ImGui::NextColumn();
-			ImGui::PushID(tag.first.c_str());
-			ImGui::Text(json[tag.first].dump().c_str());
-			ImGui::PopID();
-			ImGui::NextColumn();
+			if (render) RenderKey(tag.first, json[tag.first].dump(), "string", false);
 		}
 								  break;
 		case nbt::tag_type::List: {
 			nbt::tag_list value = tag.second->as<nbt::tag_list>();
 			int32_t list_number = global_nbt_compound_number++;
 			log::trace("LIST-{} {{", list_number);
-			indent++;
 
-			bool need_open = renderKey(tag.first, "compound", true);
-			ImGui::NextColumn();
-			ImGui::PushID((tag.first.c_str()));
-			ImGui::Text("entries");
-			ImGui::PopID();
-			ImGui::NextColumn();
+			if (!render)
+				for (const auto& nbt_tag : value)
+					json[tag.first].update(ParseNbtTag(std::make_pair(std::string(""), nbt_tag.get().clone())));
+			else {
+				bool need_open = RenderKey(tag.first, "entries", "compound", true);
 
-			if (need_open) {
-				for (const auto& nbt_tag : value) {
-					json[tag.first].update(ParseNbtTag(header, indent, std::make_pair(std::string(""), nbt_tag.get().clone())));
+				if (need_open) {
+					for (const auto& nbt_tag : value)
+						json[tag.first].update(ParseNbtTag(std::make_pair(std::string(""), nbt_tag.get().clone())));
+
+					ImGui::TreePop();
 				}
-				if (--indent < 0)
-					indent = 0;
-				log::trace("{}}} LIST-{}", makeIndent(indent, header), list_number);
-				ImGui::TreePop();
 			}
 		}
 								break;
@@ -178,23 +135,19 @@ namespace smokey_bedrock_parser {
 			nbt::tag_compound value = tag.second->as<nbt::tag_compound>();
 			int32_t compound_number = global_nbt_compound_number++;
 			log::trace("TAG_COMPOUND: {} ({} tags)", compound_number, value.size());
-			indent++;
 
-			bool need_open = renderKey(tag.first, "compound", true);
-			ImGui::NextColumn();
-			ImGui::PushID((tag.first.c_str()));
-			ImGui::Text("entries");
-			ImGui::PopID();
-			ImGui::NextColumn();
+			if (!render)
+				for (const auto& nbt_tag : value)
+					json[tag.first].update(ParseNbtTag(std::make_pair(nbt_tag.first, nbt_tag.second.get().clone())));
+			else {
+				bool need_open = RenderKey(tag.first, "entries", "compound", true);
 
-			if (need_open) {
-				for (const auto& nbt_tag : value) {
-					json[tag.first].update(ParseNbtTag(header, indent, std::make_pair(nbt_tag.first, nbt_tag.second.get().clone())));
+				if (need_open) {
+					for (const auto& nbt_tag : value)
+						json[tag.first].update(ParseNbtTag(std::make_pair(nbt_tag.first, nbt_tag.second.get().clone())));
+
+					ImGui::TreePop();
 				}
-				if (indent-- < 0)
-					indent = 0;
-				log::trace("{}}} COMPOUND-{}", makeIndent(indent, header), compound_number);
-				ImGui::TreePop();
 			}
 		}
 									break;
@@ -209,9 +162,8 @@ namespace smokey_bedrock_parser {
 		return json;
 	}
 
-	std::pair<int32_t, nlohmann::json> ParseNbt(const char* header, const char* buffer, int32_t buffer_length, NbtTagList& tag_list) {
+	std::pair<int32_t, nlohmann::json> ParseNbt(const char* buffer, int32_t buffer_length, NbtTagList& tag_list, bool render) {
 		int32_t indent = 0;
-		log::trace("{}NBT Decode Start", makeIndent(indent, header));
 		global_nbt_list_number = 0;
 		global_nbt_compound_number = 0;
 		std::istringstream iss(std::string(buffer, buffer_length));
@@ -222,12 +174,10 @@ namespace smokey_bedrock_parser {
 		std::istream& stream = reader.get_istr();
 
 		while (!done && stream && !stream.eof()) {
-			try
-			{
+			try {
 				tag_list.push_back(reader.read_tag());
 			}
-			catch (const std::exception&)
-			{
+			catch (const std::exception&) {
 				if (!stream.eof())
 					log::error("Failed to read tag");
 
@@ -238,14 +188,16 @@ namespace smokey_bedrock_parser {
 		NbtJson nbt_json;
 		nbt_json.name = "nbt";
 
-		for (const auto& nbt_tag : tag_list) {
-			nbt_json.nbt.push_back(ParseNbtTag(header, indent, nbt_tag));
-		}
+		for (const auto& nbt_tag : tag_list)
+			nbt_json.nbt.push_back(ParseNbtTag(nbt_tag, render));
 
-		log::trace("{}NBT Decode End ({} tags)", makeIndent(indent, header), tag_list.size());
 		//log::info("{}", nbt_json.nbt.dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 
 		return std::make_pair(0, nbt_json.nbt);
+	}
+
+	std::pair<int32_t, nlohmann::json> ParseNbtRender(const char* buffer, int32_t buffer_length, NbtTagList& tag_list) {
+		return ParseNbt(buffer, buffer_length, tag_list, true);
 	}
 
 	class VillageInfo {
@@ -269,8 +221,7 @@ namespace smokey_bedrock_parser {
 			clear();
 		}
 
-		void clear()
-		{
+		void clear() {
 			players.clear();
 			x0 = x1 = y0 = y1 = z0 = z1 = 0;
 		}
