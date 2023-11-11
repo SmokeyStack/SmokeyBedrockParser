@@ -225,17 +225,13 @@ namespace smokey_bedrock_parser {
 		int32_t set_dwellers(nbt::tag_compound& tag) {
 			if (tag.has_key("Dwellers", nbt::tag_type::List)) {
 				nbt::tag_list dweller_list = tag["Dwellers"].as<nbt::tag_list>();
-				log::info("{}", dweller_list.size());
 
 				for (const auto& dweller : dweller_list) {
 					for (const auto& dweller_compound : dweller.as<nbt::tag_compound>()) {
 						nbt::tag_list dweller_tag = dweller_compound.second.as<nbt::tag_list>();
 						for (const auto& value : dweller_tag) {
 							nbt::tag_compound value_compound = value.as<nbt::tag_compound>();
-							log::info("ID - {}", value_compound["ID"].as<nbt::tag_long>().get());
-							log::info("Timestamp - {}", value_compound["TS"].as<nbt::tag_long>().get());
 							nbt::tag_list last_saved_pos = value_compound["last_saved_pos"].as<nbt::tag_list>();
-							log::info("Last Saved Position - {} - {} - {}", last_saved_pos[0].as<nbt::tag_int>().get(), last_saved_pos[1].as<nbt::tag_int>().get(), last_saved_pos[2].as<nbt::tag_int>().get());
 							dwellers.push_back(std::make_tuple(last_saved_pos[0].as<nbt::tag_int>().get(), last_saved_pos[1].as<nbt::tag_int>().get(), last_saved_pos[2].as<nbt::tag_int>().get()));
 							village_payload["Village Dwellers"].push_back({ { "ID", value_compound["ID"].as<nbt::tag_long>().get() }, {"Timestamp", value_compound["TS"].as<nbt::tag_long>().get()}, {"Last Saved Position", {last_saved_pos[0].as<nbt::tag_int>().get(), last_saved_pos[1].as<nbt::tag_int>().get(), last_saved_pos[2].as<nbt::tag_int>().get()}} });
 						}
@@ -248,30 +244,32 @@ namespace smokey_bedrock_parser {
 
 		// https://minecraft.wiki/w/Bedrock_Edition_level_format/Other_data_format#VILLAGE_[0-9a-f\\-]+_POI
 		int32_t set_pois(nbt::tag_compound& tag) {
-			int64_t id, capacity, owner_count, weight;
-			int32_t x, y, z;
+			int64_t id, capacity, owner_count, radius, weight;
+			int32_t x, y, z, type;
+			std::string init_event, name, sound_event;
+			bool use_aabb;
 
 			if (tag.has_key("POI", nbt::tag_type::List)) {
 				nbt::tag_list poi_list = tag["POI"].as<nbt::tag_list>();
-				log::info("{}", poi_list.size());
 
 				for (const auto& poi : poi_list) {
 					for (const auto& poi_compound : poi.as<nbt::tag_compound>()) {
 						if (poi_compound.second.get_type() == nbt::tag_type::List) {
 							nbt::tag_list poi_tag = poi_compound.second.as<nbt::tag_list>();
+
 							for (const auto& value : poi_tag) {
 								nbt::tag_compound value_compound = value.as<nbt::tag_compound>();
+
 								if (!value_compound["Skip"].as<nbt::tag_byte>().get()) {
 									capacity = value_compound["Capacity"].as<nbt::tag_long>().get();
-									log::info("InitEvent - {}", value_compound["InitEvent"].as<nbt::tag_string>().get();
-									log::info("Name - {}", value_compound["Name"].as<nbt::tag_string>().get();
-									owner_count= value_compound["OwnerCount"].as<nbt::tag_long>().get();
-									log::info("Radius - {}", value_compound["Radius"].as<nbt::tag_float>().get();
-									log::info("Skip - {}", value_compound["Skip"].as<nbt::tag_byte>().get();
-									log::info("SoundEvent - {}", value_compound["SoundEvent"].as<nbt::tag_string>().get();
-									log::info("Type - {}", value_compound["Type"].as<nbt::tag_int>().get();
-									log::info("UseAABB - {}", value_compound["UseAABB"].as<nbt::tag_byte>().get();
-									log::info("Weight - {}", value_compound["Weight"].as<nbt::tag_long>().get();
+									init_event = value_compound["InitEvent"].as<nbt::tag_string>().get();
+									name = value_compound["Name"].as<nbt::tag_string>().get();
+									owner_count = value_compound["OwnerCount"].as<nbt::tag_long>().get();
+									radius = value_compound["Radius"].as<nbt::tag_float>().get();
+									sound_event = value_compound["SoundEvent"].as<nbt::tag_string>().get();
+									type = value_compound["Type"].as<nbt::tag_int>().get();
+									use_aabb = value_compound["UseAABB"].as<nbt::tag_byte>().get();
+									weight = value_compound["Weight"].as<nbt::tag_long>().get();
 									x = value_compound["X"].as<nbt::tag_int>().get();
 									y = value_compound["Y"].as<nbt::tag_int>().get();
 									z = value_compound["Z"].as<nbt::tag_int>().get();
@@ -283,7 +281,19 @@ namespace smokey_bedrock_parser {
 						else
 							id = poi_compound.second.as<nbt::tag_long>().get();
 					}
-					village_payload["Village POIs"].push_back({ { "VillagerID", id }, {"Position", {{"x", x},{"y", y},{"z", z}}},{"Capacity", "Capacity"} });
+
+					village_payload["Village POIs"].push_back(
+						{ { "VillagerID", id },
+						{"Position", {{"x", x},{"y", y},{"z", z}}},
+						{"Capacity", capacity},
+						{"InitEvent", init_event},{"Name",name},
+						{"OwnerCount", owner_count},
+						{"Radius", radius},
+						{"SoundEvent", sound_event},
+						{"Type", type},
+						{"UseAABB", use_aabb},
+						{"Weight", weight} }
+					);
 				}
 			}
 
