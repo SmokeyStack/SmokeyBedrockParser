@@ -9,12 +9,6 @@
 
 namespace smokey_bedrock_parser {
 	class MinecraftWorld {
-	private:
-		std::string world_name;
-		int64_t world_seed;
-		int32_t world_spawn_x;
-		int32_t world_spawn_y;
-		int32_t world_spawn_z;
 	public:
 		MinecraftWorld() {
 			world_name = "";
@@ -63,13 +57,16 @@ namespace smokey_bedrock_parser {
 		int32_t get_world_spawn_z() {
 			return world_spawn_z;
 		}
+
+	private:
+		std::string world_name;
+		int64_t world_seed;
+		int32_t world_spawn_x;
+		int32_t world_spawn_y;
+		int32_t world_spawn_z;
 	};
 
 	class MinecraftWorldLevelDB : public MinecraftWorld {
-	private:
-		leveldb::DB* db;
-		std::unique_ptr<leveldb::Options> db_options;
-		int32_t total_record_count;
 	public:
 		std::vector<std::unique_ptr<Dimension>> dimensions;
 
@@ -79,13 +76,28 @@ namespace smokey_bedrock_parser {
 			CloseDB();
 		}
 
+		int32_t init(std::string db_directory);
+
+		int32_t OpenDB(std::string db_directory);
+
+		int32_t CloseDB() {
+			if (db != nullptr) {
+				delete db;
+				db = nullptr;
+			}
+
+			return 0;
+		}
+
+		int32_t CalculateTotalRecords();
+
 		int32_t ParseLevelFile(std::string file_name);
 
 		int32_t ParseLevelName(std::string file_name) {
 			FILE* file = fopen(file_name.c_str(), "r");
 
 			if (!file) {
-				log::error("Failed to open input file (fn={} error={} ({}))", file_name, strerror(errno), errno);
+				log::error("Failed to open input file (file name={} | error={} ({}))", file_name, strerror(errno), errno);
 
 				return -1;
 			}
@@ -105,21 +117,12 @@ namespace smokey_bedrock_parser {
 			return 0;
 		}
 
-		int32_t init(std::string db_directory);
-
-		int32_t OpenDB(std::string db_directory);
-
-		int32_t CloseDB() {
-			if (db != nullptr) {
-				delete db;
-				db = nullptr;
-			}
-			return 0;
-		}
-
-		int32_t CalculateTotalRecords();
-
 		int32_t ParseDB();
+
+	private:
+		leveldb::DB* db;
+		std::unique_ptr<leveldb::Options> db_options;
+		int32_t total_record_count;
 	};
 
 	extern std::unique_ptr<MinecraftWorldLevelDB> world;

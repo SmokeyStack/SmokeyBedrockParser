@@ -19,16 +19,25 @@ set(BIN_NAME SmokeyBedrockParser)
 set(LIB_NAME SmokeyBedrockParserLib)
 
 project(SmokeyBedrockParser VERSION 0.1)
-option(LEVELDB_BUILD_TESTS OFF)
 
-file(GLOB_RECURSE SRC_FILES src/*.cpp)
+find_package(OpenGL REQUIRED)
+find_package(unofficial-nativefiledialog CONFIG REQUIRED)
+
+option(LEVELDB_BUILD_TESTS OFF)
+set(NBT_BUILD_TESTS OFF CACHE INTERNAL "Don't build nbt++ tests")
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+file(GLOB_RECURSE SRC_FILES src/*.cpp include/*cpp)
 file(GLOB_RECURSE HEADER_FILES include/*.h include/*.hpp)
 add_library(${LIB_NAME} STATIC ${SRC_FILES})
 
 add_subdirectory(third-party/leveldb-mcpe)
 add_subdirectory(third-party/spdlog)
-set(NBT_BUILD_TESTS OFF CACHE INTERNAL "Don't build nbt++ tests")
 add_subdirectory(third-party/libnbtplusplus)
+add_subdirectory(third-party/glfw)
+
 
 # GOOGLE disables RTTI for leveldb so we will do the same
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -45,7 +54,7 @@ target_include_directories(${LIB_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${LIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 target_link_libraries(${LIB_NAME}
-  leveldb spdlog nbt++
+  leveldb spdlog nbt++ glfw OpenGL::GL unofficial::nativefiledialog::nfd
 )
 
 add_executable(${BIN_NAME} src/SmokeyBedrockParser.cpp)

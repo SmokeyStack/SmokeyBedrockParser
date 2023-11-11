@@ -1,7 +1,7 @@
 #include "logger.h"
 
-#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 namespace smokey_bedrock_parser {
 	auto CreateConsoleSink() {
@@ -26,4 +26,4 @@ namespace smokey_bedrock_parser {
 		spdlog::set_default_logger(std::make_shared<spdlog::logger>("stage_2", sink_list));
 		spdlog::set_level(spdlog::level::level_enum(consoleLevel > fileLevel ? fileLevel : consoleLevel));
 	}
-}
+} // namespace smokey_bedrock_parser

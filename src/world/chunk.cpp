@@ -1,18 +1,18 @@
 #include "world/chunk.h"
 
-#include <cmath>
-#include <cstdint>
-#include <cstring>
 #include <string>
-#include "nbt.h"
-#include "logger.h"
+#include <cstring>
+#include <cstdint>
+#include <cmath>
+
 #include "json.hpp"
+#include "logger.h"
+#include "nbt.h"
 
 // Thanks to the project bedrock-viz for this math logic
 int32_t
 SetupBlockStorage(const char* buffer, int32_t& blocks_per_word, int32_t& bits_per_block, int32_t& block_offset,
 	int32_t& palette_offset) {
-
 	int32_t version = -1;
 	int32_t word_count = -1;
 
@@ -137,8 +137,7 @@ namespace smokey_bedrock_parser {
 		int32_t block_offset = -1;
 		int32_t palette_offset = -1;
 
-		if (SetupBlockStorage(buffer, blocks_per_word, bits_per_block, block_offset, palette_offset) != 0)
-			return -1;
+		if (SetupBlockStorage(buffer, blocks_per_word, bits_per_block, block_offset, palette_offset) != 0) return -1;
 
 		NbtTagList tag_list;
 		int offset = palette_offset + 4;
@@ -182,4 +181,4 @@ namespace smokey_bedrock_parser {
 			}
 		}
 	}
-}
+} // namespace smokey_bedrock_parser

@@ -1,10 +1,9 @@
-#include <iostream>
+#include <imgui/imgui.h>
 #include <tuple>
-#include <stdint.h>
 
-#include "nbt.h"
-#include "logger.h"
 #include "json.hpp"
+#include "logger.h"
+#include "nbt.h"
 
 std::string makeIndent(int32_t indent, const char* hdr) {
 	std::string s;
@@ -13,6 +12,34 @@ std::string makeIndent(int32_t indent, const char* hdr) {
 		s.append("  ");
 	}
 	return s;
+}
+
+bool renderKey(const std::string& name, const char* type, bool arr) {
+	float px = ImGui::GetCursorPosX() + 18.0f;
+	static const char spaces[51] = {
+		"                                                 \0"
+	};
+	const char* spcptr = &(
+		spaces[50 - int(32.0f / (ImGui::CalcTextSize(" ").x))]
+		);
+	bool open = false;
+	bool show_tooltip = false;
+	if (arr) {
+		open = ImGui::TreeNodeEx(name.c_str(), 0, "%s%s", spcptr, name.c_str());
+	}
+	else {
+		open = ImGui::TreeNodeEx(name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen, "%s%s", spcptr, name.c_str());
+	}
+	ImGui::SameLine(px);
+	show_tooltip = ImGui::IsItemHovered();
+	if (show_tooltip) {
+		ImGui::BeginTooltip();
+		ImGui::Text(name.c_str());
+		ImGui::SameLine();
+		ImGui::TextDisabled("%s", type);
+		ImGui::EndTooltip();
+	}
+	return open;
 }
 
 namespace smokey_bedrock_parser {
@@ -34,36 +61,78 @@ namespace smokey_bedrock_parser {
 			nbt::tag_byte value = tag.second->as<nbt::tag_byte>();
 			log::trace("TAG_BYTE: {}", value.get());
 			json[tag.first] = value.get();
+
+			renderKey(tag.first, "byte", false);
+			ImGui::NextColumn();
+			ImGui::PushID(tag.first.c_str());
+			ImGui::Text(json[tag.first].dump().c_str());
+			ImGui::PopID();
+			ImGui::NextColumn();
 		}
 								break;
 		case nbt::tag_type::Short: {
 			nbt::tag_short value = tag.second->as<nbt::tag_short>();
 			log::trace("TAG_SHORT: {}", value.get());
 			json[tag.first] = value.get();
+
+			renderKey(tag.first, "short", false);
+			ImGui::NextColumn();
+			ImGui::PushID(tag.first.c_str());
+			ImGui::Text(json[tag.first].dump().c_str());
+			ImGui::PopID();
+			ImGui::NextColumn();
 		}
 								 break;
 		case nbt::tag_type::Int: {
 			nbt::tag_int value = tag.second->as<nbt::tag_int>();
 			log::trace("TAG_INT: {}", value.get());
 			json[tag.first] = value.get();
+
+			renderKey(tag.first, "int", false);
+			ImGui::NextColumn();
+			ImGui::PushID(tag.first.c_str());
+			ImGui::Text(json[tag.first].dump().c_str());
+			ImGui::PopID();
+			ImGui::NextColumn();
 		}
 							   break;
 		case nbt::tag_type::Long: {
 			nbt::tag_long value = tag.second->as<nbt::tag_long>();
 			log::trace("TAG_LONG: {}", value.get());
 			json[tag.first] = value.get();
+
+			renderKey(tag.first, "long", false);
+			ImGui::NextColumn();
+			ImGui::PushID(tag.first.c_str());
+			ImGui::Text(json[tag.first].dump().c_str());
+			ImGui::PopID();
+			ImGui::NextColumn();
 		}
 								break;
 		case nbt::tag_type::Float: {
 			nbt::tag_float value = tag.second->as<nbt::tag_float>();
 			log::trace("TAG_FLOAT: {}", value.get());
 			json[tag.first] = value.get();
+
+			renderKey(tag.first, "float", false);
+			ImGui::NextColumn();
+			ImGui::PushID(tag.first.c_str());
+			ImGui::Text(json[tag.first].dump().c_str());
+			ImGui::PopID();
+			ImGui::NextColumn();
 		}
 								 break;
 		case nbt::tag_type::Double: {
 			nbt::tag_double value = tag.second->as<nbt::tag_double>();
 			log::trace("TAG_DOUBLE: {}", value.get());
 			json[tag.first] = value.get();
+
+			renderKey(tag.first, "double", false);
+			ImGui::NextColumn();
+			ImGui::PushID(tag.first.c_str());
+			ImGui::Text(json[tag.first].dump().c_str());
+			ImGui::PopID();
+			ImGui::NextColumn();
 		}
 								  break;
 		case nbt::tag_type::Byte_Array:
@@ -72,6 +141,13 @@ namespace smokey_bedrock_parser {
 			nbt::tag_string value = tag.second->as<nbt::tag_string>();
 			log::trace("TAG_STRING: {}", value.get());
 			json[tag.first] = value.get();
+
+			renderKey(tag.first, "string", false);
+			ImGui::NextColumn();
+			ImGui::PushID(tag.first.c_str());
+			ImGui::Text(json[tag.first].dump().c_str());
+			ImGui::PopID();
+			ImGui::NextColumn();
 		}
 								  break;
 		case nbt::tag_type::List: {
@@ -80,14 +156,22 @@ namespace smokey_bedrock_parser {
 			log::trace("LIST-{} {{", list_number);
 			indent++;
 
-			for (const auto& nbt_tag : value) {
-				json[tag.first].update(ParseNbtTag(header, indent, std::make_pair(std::string(""), nbt_tag.get().clone())));
+			bool need_open = renderKey(tag.first, "compound", true);
+			ImGui::NextColumn();
+			ImGui::PushID((tag.first.c_str()));
+			ImGui::Text("entries");
+			ImGui::PopID();
+			ImGui::NextColumn();
+
+			if (need_open) {
+				for (const auto& nbt_tag : value) {
+					json[tag.first].update(ParseNbtTag(header, indent, std::make_pair(std::string(""), nbt_tag.get().clone())));
+				}
+				if (--indent < 0)
+					indent = 0;
+				log::trace("{}}} LIST-{}", makeIndent(indent, header), list_number);
+				ImGui::TreePop();
 			}
-
-			if (--indent < 0)
-				indent = 0;
-
-			log::trace("{}}} LIST-{}", makeIndent(indent, header), list_number);
 		}
 								break;
 		case nbt::tag_type::Compound: {
@@ -96,14 +180,22 @@ namespace smokey_bedrock_parser {
 			log::trace("TAG_COMPOUND: {} ({} tags)", compound_number, value.size());
 			indent++;
 
-			for (const auto& nbt_tag : value) {
-				json[tag.first].update(ParseNbtTag(header, indent, std::make_pair(nbt_tag.first, nbt_tag.second.get().clone())));
+			bool need_open = renderKey(tag.first, "compound", true);
+			ImGui::NextColumn();
+			ImGui::PushID((tag.first.c_str()));
+			ImGui::Text("entries");
+			ImGui::PopID();
+			ImGui::NextColumn();
+
+			if (need_open) {
+				for (const auto& nbt_tag : value) {
+					json[tag.first].update(ParseNbtTag(header, indent, std::make_pair(nbt_tag.first, nbt_tag.second.get().clone())));
+				}
+				if (indent-- < 0)
+					indent = 0;
+				log::trace("{}}} COMPOUND-{}", makeIndent(indent, header), compound_number);
+				ImGui::TreePop();
 			}
-
-			if (indent-- < 0)
-				indent = 0;
-
-			log::trace("{}}} COMPOUND-{}", makeIndent(indent, header), compound_number);
 		}
 									break;
 		case nbt::tag_type::Int_Array:
@@ -208,7 +300,6 @@ namespace smokey_bedrock_parser {
 				}
 			}
 
-			log::info("{}", players.size());
 			for (const auto& player : players)
 				log::info("{} - {}", player.first, player.second);
 
@@ -319,4 +410,4 @@ namespace smokey_bedrock_parser {
 
 		return 0;
 	}
-}
+} // namespace smokey_bedrock_parser
