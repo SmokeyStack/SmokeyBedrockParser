@@ -1,19 +1,18 @@
+#include <cstdint>
 #include <cstdio>
 #include <filesystem>
-#include <string>
-#include <cstdint>
+#include <GLFW/glfw3.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
 #include <iostream>
-#include <stdio.h>
-
-#include <nfd.h>
-#include <leveldb/db.h>
 #include <leveldb/cache.h>
+#include <leveldb/db.h>
+#include <nfd.h>
+#include <stdio.h>
+#include <string>
 
 #include "world/world.h"
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_opengl3.h"
-#include <GLFW/glfw3.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "GLFW Error %d: %s\n", error, description);

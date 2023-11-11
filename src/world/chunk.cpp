@@ -1,17 +1,17 @@
 #include "world/chunk.h"
 
-#include <cmath>
-#include <cstdint>
-#include <cstring>
 #include <string>
-#include "nbt.h"
-#include "logger.h"
+#include <cstring>
+#include <cstdint>
+#include <cmath>
+
 #include "json.hpp"
+#include "logger.h"
+#include "nbt.h"
 
 int32_t
 SetupBlockStorage(const char* buffer, int32_t& blocks_per_word, int32_t& bits_per_block, int32_t& block_offset,
 	int32_t& palette_offset) {
-
 	int32_t version = -1;
 	int32_t word_count = -1;
 
@@ -21,21 +21,25 @@ SetupBlockStorage(const char* buffer, int32_t& blocks_per_word, int32_t& bits_pe
 		// v1 - [version:byte][block storage]
 		version = buffer[1];
 		block_offset = 1;
+
 		break;
 	case 0x08:
 		// v8 - [version:byte][num_storages:byte][block storage1]...[blockStorageN]
 		version = buffer[2];
 		block_offset = 3;
+
 		break;
 	case 0x09:
 		// https://gist.github.com/Tomcc/a96af509e275b1af483b25c543cfbf37?permalink_comment_id=3901255#gistcomment-3901255
 		// v9 - [version:byte][num_storages:byte][sub_chunk_index:byte][block storage1]...[blockStorageN]
 		version = buffer[3];
 		block_offset = 4;
+
 		break;
 	default:
 		smokey_bedrock_parser::log::error("Invalid SubChunk version found ({})",
 			buffer[0]);
+
 		return -1;
 	}
 
@@ -45,6 +49,7 @@ SetupBlockStorage(const char* buffer, int32_t& blocks_per_word, int32_t& bits_pe
 		bits_per_block = 0;
 		blocks_per_word = 0;
 		palette_offset = 0;
+
 		break;
 	case 0x01:
 	case 0x02:
@@ -61,11 +66,14 @@ SetupBlockStorage(const char* buffer, int32_t& blocks_per_word, int32_t& bits_pe
 		blocks_per_word = floor(32.0 / bits_per_block);
 		word_count = ceil(4096.0 / blocks_per_word);
 		palette_offset = word_count * 4 + block_offset;
+
 		break;
 	default:
 		smokey_bedrock_parser::log::error("Unknown SubChunk palette value (value = {})", version);
+
 		return -1;
 	}
+
 	return 0;
 }
 
@@ -78,8 +86,7 @@ namespace smokey_bedrock_parser {
 		int32_t block_offset = -1;
 		int32_t palette_offset = -1;
 
-		if (SetupBlockStorage(buffer, blocks_per_word, bits_per_block, block_offset, palette_offset) != 0)
-			return -1;
+		if (SetupBlockStorage(buffer, blocks_per_word, bits_per_block, block_offset, palette_offset) != 0) return -1;
 
 		NbtTagList tag_list;
 		int offset = palette_offset + 4;
@@ -96,6 +103,5 @@ namespace smokey_bedrock_parser {
 				}
 			}
 		}
-
 	}
-}
+} // namespace smokey_bedrock_parser

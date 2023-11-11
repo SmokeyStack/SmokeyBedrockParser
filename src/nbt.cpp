@@ -1,12 +1,9 @@
-#include <iostream>
+#include <imgui/imgui.h>
 #include <tuple>
-#include <stdint.h>
 
-#include "nbt.h"
-#include "logger.h"
 #include "json.hpp"
-#include "imgui/imgui.h"
-
+#include "logger.h"
+#include "nbt.h"
 
 std::string makeIndent(int32_t indent, const char* hdr) {
 	std::string s;
@@ -246,7 +243,7 @@ namespace smokey_bedrock_parser {
 		}
 
 		log::trace("{}NBT Decode End ({} tags)", makeIndent(indent, header), tag_list.size());
-		log::info("{}", nbt_json.nbt.dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
+		//log::info("{}", nbt_json.nbt.dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
 
 		return std::make_pair(0, nbt_json.nbt);
 	}
@@ -303,7 +300,6 @@ namespace smokey_bedrock_parser {
 				}
 			}
 
-			log::info("{}", players.size());
 			for (const auto& player : players)
 				log::info("{} - {}", player.first, player.second);
 
@@ -414,4 +410,4 @@ namespace smokey_bedrock_parser {
 
 		return 0;
 	}
-}
+} // namespace smokey_bedrock_parser

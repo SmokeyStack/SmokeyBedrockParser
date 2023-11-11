@@ -20,4 +20,4 @@ namespace smokey_bedrock_parser {
 		int32_t ParseChunk(int32_t chunk_x, int32_t chunk_y, int32_t chunk_z, const char* buffer, size_t buffer_length,
 			int32_t dimension_id, const std::string& dimension_name);
 	};
-}
+} // namespace smokey_bedrock_parser

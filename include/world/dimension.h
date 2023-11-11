@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
+#include <climits>
+#include <cstdint>
 #include <map>
 #include <memory>
-#include <vector>
-#include <cstdint>
-#include <climits>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "logger.h"
 #include "world/chunk.h"
@@ -15,16 +15,6 @@ namespace smokey_bedrock_parser {
 	const std::vector<std::string> dimension_id_names{ "overworld","nether","the-end" };
 
 	class Dimension {
-	private:
-		std::string dimension_name;
-		int32_t dimension_id;
-		typedef std::pair<uint32_t, uint32_t> ChunkKey;
-		typedef std::map<ChunkKey, std::unique_ptr<Chunk>> ChunkMap;
-		ChunkMap chunks;
-
-		int32_t min_chunk_x, max_chunk_x;
-		int32_t min_chunk_z, max_chunk_z;
-
 	public:
 		Dimension() {
 			dimension_name = "(UNKNOWN)";
@@ -70,13 +60,21 @@ namespace smokey_bedrock_parser {
 		int32_t AddChunk(int32_t chunk_format_version, int32_t chunk_x, int32_t chunk_y, int32_t chunk_z, const char* buffer,
 			size_t buffer_length) {
 			ChunkKey key(chunk_x, chunk_z);
-			if (chunk_format_version == 7) {
-				return chunks[key]->ParseChunk(chunk_x, chunk_y, chunk_z, buffer, buffer_length, dimension_id, dimension_name);
-			}
+
+			if (chunk_format_version == 7) return chunks[key]->ParseChunk(chunk_x, chunk_y, chunk_z, buffer, buffer_length, dimension_id, dimension_name);
 			else {
 				log::error("Unknown chunk format version (version = {})", chunk_format_version);
 				return -1;
 			}
 		};
+
+	private:
+		std::string dimension_name;
+		int32_t dimension_id;
+		typedef std::pair<uint32_t, uint32_t> ChunkKey;
+		typedef std::map<ChunkKey, std::unique_ptr<Chunk>> ChunkMap;
+		ChunkMap chunks;
+		int32_t min_chunk_x, max_chunk_x;
+		int32_t min_chunk_z, max_chunk_z;
 	};
-}
+} // namespace smokey_bedrock_parser
