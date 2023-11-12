@@ -1,0 +1,25 @@
+{
+  "DEEPSLATE": [
+    "minecraft:reinforced_deepslate"
+  ],
+  "GRASS": [
+    "minecraft:grass",
+    "minecraft:slime"
+  ],
+  "NONE": [
+    "minecraft:air",
+    "minecraft:barrier"
+  ],
+  "SAND": [
+    "minecraft:sand",
+    "minecraft:birch_planks",
+    {
+      "name": "minecraft:birch_log",
+      "states": { "pillar_axis": "y" }
+    },
+    "minecraft:stripped_birch_log"
+  ],
+  "STONE": [
+    "minecraft:stone"
+  ]
+}

@@ -1,9 +1,10 @@
+#include "nbt.h"
+
 #include <imgui/imgui.h>
 #include <tuple>
 
 #include "json.hpp"
 #include "logger.h"
-#include "nbt.h"
 
 bool RenderKey(const std::string& name, const std::string& value, const char* type, bool arr) {
 	float px = ImGui::GetCursorPosX() + 18.0f;

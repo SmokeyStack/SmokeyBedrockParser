@@ -63,16 +63,16 @@ namespace smokey_bedrock_parser {
 
 			if (chunk_format_version == 7)
 			{
-				if (!chunks_has_key(chunks, key)) {
+				if (!chunks_has_key(chunks, key))
 					chunks[key] = std::unique_ptr<Chunk>(new Chunk());
-				}
+
 
 				chunks[key]->ParseChunk(chunk_x, chunk_y, chunk_z, buffer, buffer_length, dimension_id, dimension_name);
-				for (int32_t i = 0; i < 16; i++) {
-					for (int32_t a = 0; a < 16; a++) {
+				for (int32_t i = 0; i < 16; i++)
+					for (int32_t a = 0; a < 16; a++)
 						log::trace("Block: {} at Y={}", chunks[key]->blocks[i][a], chunks[key]->top_blocks[i][a]);
-					}
-				}
+
+
 
 				return 0;
 			}

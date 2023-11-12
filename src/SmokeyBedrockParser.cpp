@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <string>
 
+#include "loader.h"
+#include "minecraft/block.h"
 #include "world/world.h"
 
 static void GLFWErrorCallback(int error, const char* description) {
@@ -34,6 +36,16 @@ int main(int argc, char** argv) {
 	nfdchar_t* selected_folder = NULL;
 	static bool show_app_property_editor = false;
 
+	LoadJson("data/blocks.json");
+
+	auto block = Block::Get("minecraftreinforced_deepslate");
+
+	if (block == nullptr) {
+		log::error("Failed to get block: {}", "minecraft:reinforced_deepslate");
+
+		return -1;
+	}
+
 	world->init(argv[1]);
 	world->OpenDB(argv[1]);
 	world->ParseDB();
@@ -41,7 +53,6 @@ int main(int argc, char** argv) {
 	log::info("Done.");
 	log::info("====================================================================================================");
 	world->dimensions[0]->GetChunk(0, 0, 0);
-
 
 	/*
 	nfdchar_t* outPath = NULL;
