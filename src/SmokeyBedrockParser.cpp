@@ -34,13 +34,16 @@ int main(int argc, char** argv) {
 	nfdchar_t* selected_folder = NULL;
 	static bool show_app_property_editor = false;
 
-	/*world->init(argv[1]);
+	world->init(argv[1]);
 	world->OpenDB(argv[1]);
 	world->ParseDB();
 	world->CloseDB();
 	log::info("Done.");
 	log::info("====================================================================================================");
+	world->dimensions[0]->GetChunk(0, 0, 0);
 
+
+	/*
 	nfdchar_t* outPath = NULL;
 	nfdresult_t result = NFD_OpenDialog(NULL, NULL, &outPath);
 
@@ -227,9 +230,9 @@ int main(int argc, char** argv) {
 			for (float x = fmodf(scrolling.x, GRID_STEP); x < canvas_sz.x; x += GRID_STEP) {
 				for (float y = fmodf(scrolling.y, GRID_STEP); y < canvas_sz.y; y += GRID_STEP) {
 					//draw_list->AddRect(ImVec2(canvas_p0.x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p0.y + y), IM_COL32(200, 200, 200, 40));
-					draw_list->AddLine(ImVec2(canvas_p0.x + x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p1.y), IM_COL32(200, 200, 200, 40));
-					draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + y), ImVec2(canvas_p1.x, canvas_p0.y + y), IM_COL32(200, 200, 200, 40));
-					draw_list->AddRectFilled(origin, ImVec2(origin[0] + GRID_STEP, origin[1] + GRID_STEP), IM_COL32(255, 0, 0, 255));
+					draw_list->AddLine(ImVec2(canvas_p0.x + x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p1.y), IM_COL32(200, 200, 200, 1));
+					draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + y), ImVec2(canvas_p1.x, canvas_p0.y + y), IM_COL32(200, 200, 200, 1));
+					draw_list->AddRectFilled(ImVec2(canvas_p0.x + x, canvas_p0.y + y), ImVec2(origin[0] + GRID_STEP, origin[1] + GRID_STEP), IM_COL32(((int)x % 255), 0, ((int)y % 255), 255));
 				}
 			}
 

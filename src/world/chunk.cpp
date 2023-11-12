@@ -176,7 +176,16 @@ namespace smokey_bedrock_parser {
 						palette_id = 0;
 
 					block_id = chunk_palette_id[palette_id];
-					log::trace("Block ID: {}, (x: {}, y: {}, z: {})", block_id, x + chunk_x * 16, y + chunk_y * 16, z + chunk_z * 16);
+					int32_t actual_y = y + chunk_y * 16;
+
+					if (block_id != "minecraft:air") {
+						if ((actual_y >= top_blocks[x][z])) {
+							blocks[x][z] = block_id;
+							top_blocks[x][z] = actual_y;
+						}
+					}
+
+					log::trace("Block ID: {}, (x: {}, y: {}, z: {})", block_id, x + chunk_x * 16, actual_y, z + chunk_z * 16);
 				}
 			}
 		}

@@ -61,11 +61,33 @@ namespace smokey_bedrock_parser {
 			size_t buffer_length) {
 			ChunkKey key(chunk_x, chunk_z);
 
-			if (chunk_format_version == 7) return chunks[key]->ParseChunk(chunk_x, chunk_y, chunk_z, buffer, buffer_length, dimension_id, dimension_name);
+			if (chunk_format_version == 7)
+			{
+				if (!chunks_has_key(chunks, key)) {
+					chunks[key] = std::unique_ptr<Chunk>(new Chunk());
+				}
+
+				chunks[key]->ParseChunk(chunk_x, chunk_y, chunk_z, buffer, buffer_length, dimension_id, dimension_name);
+				for (int32_t i = 0; i < 16; i++) {
+					for (int32_t a = 0; a < 16; a++) {
+						log::trace("Block: {} at Y={}", chunks[key]->blocks[i][a], chunks[key]->top_blocks[i][a]);
+					}
+				}
+
+				return 0;
+			}
 			else {
 				log::error("Unknown chunk format version (version = {})", chunk_format_version);
 				return -1;
 			}
+		};
+
+		int32_t GetChunk(int32_t chunk_x, int32_t chunk_y, int32_t chunk_z) {
+			ChunkKey key(chunk_x, chunk_z);
+
+			log::info("Block: {} at Y={}", chunks[key]->blocks[chunk_x][chunk_z], chunks[key]->top_blocks[chunk_x][chunk_z]);
+
+			return 0;
 		};
 
 	private:
@@ -76,5 +98,9 @@ namespace smokey_bedrock_parser {
 		ChunkMap chunks;
 		int32_t min_chunk_x, max_chunk_x;
 		int32_t min_chunk_z, max_chunk_z;
+
+		bool chunks_has_key(const ChunkMap& m, const ChunkKey& k) {
+			return m.find(k) != m.end();
+		}
 	};
 } // namespace smokey_bedrock_parser
