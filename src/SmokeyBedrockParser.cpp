@@ -15,7 +15,7 @@
 #include "world/world.h"
 
 static void GLFWErrorCallback(int error, const char* description) {
-	fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+	smokey_bedrock_parser::log::error("GLFW Error {}: {}", error, description);
 }
 
 int main(int argc, char** argv) {
@@ -34,14 +34,14 @@ int main(int argc, char** argv) {
 	nfdchar_t* selected_folder = NULL;
 	static bool show_app_property_editor = false;
 
-	world->init(argv[1]);
+	/*world->init(argv[1]);
 	world->OpenDB(argv[1]);
 	world->ParseDB();
 	world->CloseDB();
 	log::info("Done.");
 	log::info("====================================================================================================");
 
-	/*nfdchar_t* outPath = NULL;
+	nfdchar_t* outPath = NULL;
 	nfdresult_t result = NFD_OpenDialog(NULL, NULL, &outPath);
 
 	if (result == NFD_OKAY) {
@@ -142,8 +142,6 @@ int main(int argc, char** argv) {
 	colors[ImGuiCol_TabActive] = ImVec4(0.30f, 0.30f, 0.33f, 1.00f);
 	colors[ImGuiCol_TabUnfocused] = ImVec4(0.12f, 0.12f, 0.12f, 0.97f);
 	colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.18f, 0.18f, 0.19f, 1.00f);
-	//colors[ImGuiCol_DockingPreview] = ImVec4(0.26f, 0.59f, 0.98f, 0.50f);
-	//colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.20f, 0.20f, 0.20f, 1.00f);
 	colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
 	colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
 	colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
@@ -154,7 +152,6 @@ int main(int argc, char** argv) {
 	colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
 	colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
 	colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
-	style.WindowMenuButtonPosition = ImGuiDir_Right;
 
 	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
@@ -170,56 +167,23 @@ int main(int argc, char** argv) {
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	while (!glfwWindowShouldClose(window)) {
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glfwSwapBuffers(window);
-
 		glfwPollEvents();
-
-		/*
 
 		// Start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-		if (show_demo_window)
-			ImGui::ShowDemoWindow(&show_demo_window);
-
-		// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-		{
-			static float f = 0.0f;
-			static int counter = 0;
-			ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-			ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-			ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-			ImGui::Checkbox("Another Window", &show_another_window);
-			ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-			ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-			if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-				counter++;
-			ImGui::SameLine();
-			ImGui::Text("counter = %d", counter);
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-			ImGui::End();
-		}
-
-		// 3. Show another simple window.
-		if (show_another_window)
-		{
-			ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-			ImGui::Text("Hello from another window!");
-			if (ImGui::Button("Close Me"))
-				show_another_window = false;
-			ImGui::End();
-		}
+		ImGui::ShowDemoWindow();
 
 		{
-			ImGui::SetNextWindowSize(ImVec2(430, 450), ImGuiCond_FirstUseEver);
-			if (!ImGui::Begin("NBT", NULL, ImGuiWindowFlags_MenuBar))
-			{
-				// Early out if the window is collapsed, as an optimization.
+			static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar;
+
+			const ImGuiViewport* viewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(viewport->Pos);
+			ImGui::SetNextWindowSize(viewport->Size);
+
+			if (!ImGui::Begin("NBT", NULL, flags)) {
 				ImGui::End();
 			}
 			if (ImGui::BeginMenuBar()) {
@@ -227,8 +191,50 @@ int main(int argc, char** argv) {
 					ImGui::MenuItem("Property editor", NULL, &show_app_property_editor);
 					ImGui::EndMenu();
 				}
+
 				ImGui::EndMenuBar();
 			}
+
+			static ImVec2 scrolling(0.0f, 0.0f);
+
+			// Using InvisibleButton() as a convenience 1) it will advance the layout cursor and 2) allows us to use IsItemHovered()/IsItemActive()
+			ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
+			ImVec2 canvas_sz = ImGui::GetContentRegionAvail();   // Resize canvas to what's available
+			if (canvas_sz.x < 50.0f) canvas_sz.x = 50.0f;
+			if (canvas_sz.y < 50.0f) canvas_sz.y = 50.0f;
+			ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
+
+			ImGuiIO& io = ImGui::GetIO();
+			ImDrawList* draw_list = ImGui::GetWindowDrawList();
+			draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(50, 50, 50, 255));
+			draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(255, 255, 255, 255));
+
+			// This will catch our interactions
+			ImGui::InvisibleButton("canvas", canvas_sz, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+			const bool is_hovered = ImGui::IsItemHovered(); // Hovered
+			const bool is_active = ImGui::IsItemActive();   // Held
+			const ImVec2 origin(canvas_p0.x + scrolling.x, canvas_p0.y + scrolling.y); // Lock scrolled origin
+			const ImVec2 mouse_pos_in_canvas(io.MousePos.x - origin.x, io.MousePos.y - origin.y);
+
+			if (is_active && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+				scrolling.x += io.MouseDelta.x;
+				scrolling.y += io.MouseDelta.y;
+			}
+
+			draw_list->PushClipRect(canvas_p0, canvas_p1, true);
+
+			const float GRID_STEP = 64.0f;
+			for (float x = fmodf(scrolling.x, GRID_STEP); x < canvas_sz.x; x += GRID_STEP) {
+				for (float y = fmodf(scrolling.y, GRID_STEP); y < canvas_sz.y; y += GRID_STEP) {
+					//draw_list->AddRect(ImVec2(canvas_p0.x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p0.y + y), IM_COL32(200, 200, 200, 40));
+					draw_list->AddLine(ImVec2(canvas_p0.x + x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p1.y), IM_COL32(200, 200, 200, 40));
+					draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + y), ImVec2(canvas_p1.x, canvas_p0.y + y), IM_COL32(200, 200, 200, 40));
+					draw_list->AddRectFilled(origin, ImVec2(origin[0] + GRID_STEP, origin[1] + GRID_STEP), IM_COL32(255, 0, 0, 255));
+				}
+			}
+
+			draw_list->PopClipRect();
+
 			ImGui::End();
 		}
 		if (show_app_property_editor) {
@@ -238,8 +244,8 @@ int main(int argc, char** argv) {
 			}
 
 			ImGui::Columns(2, "nbt_view");
-			world->init(argv[1]);
-			world->OpenDB(argv[1]);
+			/*world->init(argv[1]);
+			world->OpenDB(argv[1]);*/
 			ImGui::Columns(1);
 
 			ImGui::End();
@@ -258,8 +264,6 @@ int main(int argc, char** argv) {
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(window);
-	*/
-
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();
