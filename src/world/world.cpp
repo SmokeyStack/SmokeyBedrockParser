@@ -210,12 +210,49 @@ namespace smokey_bedrock_parser {
 	}
 
 	int32_t MinecraftWorldLevelDB::CalculateTotalRecords() {
-		int32_t record_count = 0;
-		leveldb::Slice key, value;
-		leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
+		bool pass_flag = true;
 
-		for (it->SeekToFirst(); it->Valid(); it->Next())
+		for (int32_t i = 0; i < 3; i++)
+			if (!dimensions[i]->GetChunkBoundsValid())
+				pass_flag = false;
+		if (pass_flag)
+			return 0;
+
+		for (int32_t i = 0; i < 3; i++)
+			dimensions[i]->UnsetChunkBoundsValid();
+
+		int32_t record_count = 0;
+		leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
+		leveldb::Slice key, value;
+		size_t key_size;
+		size_t value_size;
+		const char* key_name;
+		const char* key_data;
+
+		for (it->SeekToFirst(); it->Valid(); it->Next()) {
 			record_count++;
+			key = it->key();
+			key_size = (int)key.size();
+			key_name = key.data();
+			value = it->value();
+			value_size = value.size();
+			key_data = value.data();
+
+			if (IsChunkKey({ key_name,key_size }).first) {
+				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
+				dimensions[chunk_data.chunk_dimension_id]->AddToChunkBounds(chunk_data.chunk_x, chunk_data.chunk_z);
+			}
+		}
+
+		if (!it->status().ok())
+			log::warn("LevelDB operation returned status={}", it->status().ToString());
+
+		delete it;
+
+		for (int32_t i = 0; i < 3; i++) {
+			dimensions[i]->SetChunkBoundsValid();
+			dimensions[i]->ReportChunkBounds();
+		}
 
 		total_record_count = record_count;
 

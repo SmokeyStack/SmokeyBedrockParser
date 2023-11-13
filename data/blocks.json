@@ -1,25 +1,65 @@
 {
+  "CLAY": [],
+  "COLOR_BLACK": [],
+  "COLOR_BLUE": [],
+  "COLOR_BROWN": [],
+  "COLOR_CYAN": [],
+  "COLOR_GRAY": [],
+  "COLOR_GREEN": [],
+  "COLOR_LIGHT_BLUE": [],
+  "COLOR_LIGHT_GRAY": [],
+  "COLOR_LIGHT_GREEN": [],
+  "COLOR_MAGENTA": [],
+  "COLOR_ORANGE": [],
+  "COLOR_PINK": [],
+  "COLOR_PURPLE": [],
+  "COLOR_RED": [],
+  "COLOR_YELLOW": [],
   "DEEPSLATE": [
     "minecraft:reinforced_deepslate"
   ],
+  "DIRT": [],
+  "FIRE": [],
   "GRASS": [
     "minecraft:grass",
     "minecraft:slime"
   ],
+  "ICE": [],
+  "METAL": [],
   "NONE": [
     "minecraft:air",
-    "minecraft:barrier"
+    "minecraft:barrier",
+    "minecraft:cherry_planks"
   ],
+  "PLANT": [
+    "minecraft:double_plant",
+    "minecraft:leaves",
+    "minecraft:tallgrass"
+  ],
+  "QUARTZ": [],
   "SAND": [
-    "minecraft:sand",
-    "minecraft:birch_planks",
     {
       "name": "minecraft:birch_log",
       "states": { "pillar_axis": "y" }
     },
-    "minecraft:stripped_birch_log"
+    "minecraft:birch_planks",
+    "minecraft:bone_block",
+    "minecraft:candle",
+    "minecraft:end_bricks",
+    "minecraft:end_stone",
+    "minecraft:glowstone",
+    "minecraft:ochre_froglight",
+    "minecraft:sand",
+    "minecraft:sandstone",
+    "minecraft:scaffolding",
+    "minecraft:stripped_birch_log",
+    "minecraft:turtle_egg"
   ],
+  "SNOW": [],
   "STONE": [
     "minecraft:stone"
-  ]
+  ],
+  "WATER": [],
+  "WOOD": [],
+  "WOOL": []
 }

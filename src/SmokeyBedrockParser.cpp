@@ -45,20 +45,6 @@ int main(int argc, char** argv) {
 	log::info("Done.");
 	log::info("====================================================================================================");
 
-	auto test = world->dimensions[0]->GetChunk(0, 0);
-	std::string name = test[0][0];
-
-	auto block = Block::Get(name);
-
-	if (block == nullptr) {
-		log::error("Failed to get block: {}", name);
-
-		return 1;
-	}
-	else
-		log::error("Failed to Failed to get block: {}", name);
-
-
 	/*
 	nfdchar_t* outPath = NULL;
 	nfdresult_t result = NFD_OpenDialog(NULL, NULL, &outPath);
@@ -193,8 +179,6 @@ int main(int argc, char** argv) {
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		ImGui::ShowDemoWindow();
-
 		{
 			static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar;
 
@@ -213,6 +197,15 @@ int main(int argc, char** argv) {
 
 				ImGui::EndMenuBar();
 			}
+
+			static int grid_step = 256.0f;
+			static int what = 0;
+
+			if (ImGui::SliderInt("Chunk Size", &grid_step, 64, 256)) {
+				grid_step = (grid_step / 16) * 16;
+			}
+
+			ImGui::InputInt("What", &what);
 
 			static ImVec2 scrolling(0.0f, 0.0f);
 
@@ -242,13 +235,14 @@ int main(int argc, char** argv) {
 
 			draw_list->PushClipRect(canvas_p0, canvas_p1, true);
 
-			const float GRID_STEP = 64.0f;
-			for (float x = fmodf(scrolling.x, GRID_STEP); x < canvas_sz.x; x += GRID_STEP) {
-				for (float y = fmodf(scrolling.y, GRID_STEP); y < canvas_sz.y; y += GRID_STEP) {
-					//draw_list->AddRect(ImVec2(canvas_p0.x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p0.y + y), IM_COL32(200, 200, 200, 40));
+			for (float x = fmodf(scrolling.x, grid_step); x < canvas_sz.x; x += grid_step) {
+				for (float y = fmodf(scrolling.y, grid_step); y < canvas_sz.y; y += grid_step) {
 					draw_list->AddLine(ImVec2(canvas_p0.x + x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p1.y), IM_COL32(200, 200, 200, 1));
 					draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + y), ImVec2(canvas_p1.x, canvas_p0.y + y), IM_COL32(200, 200, 200, 1));
-					draw_list->AddRectFilled(ImVec2(canvas_p0.x + x, canvas_p0.y + y), ImVec2(origin[0] + GRID_STEP, origin[1] + GRID_STEP), IM_COL32(std::get<0>(block->color), std::get<1>(block->color), std::get<2>(block->color), 255));
+
+					for (int a = world->dimensions[0]->get_min_chunk_x(); a < world->dimensions[0]->get_max_chunk_x(); a++)
+						for (int b = world->dimensions[0]->get_min_chunk_z(); b < world->dimensions[0]->get_max_chunk_z(); b++)
+							world->dimensions[0]->DrawChunk(a, b, draw_list, origin, grid_step);
 				}
 			}
 
@@ -256,6 +250,9 @@ int main(int argc, char** argv) {
 
 			ImGui::End();
 		}
+
+		//ImGui::ShowDemoWindow();
+
 		if (show_app_property_editor) {
 			ImGui::SetNextWindowSize(ImVec2(430, 450), ImGuiCond_FirstUseEver);
 			if (!ImGui::Begin("Example: Property editor", &show_app_property_editor)) {
@@ -269,8 +266,6 @@ int main(int argc, char** argv) {
 
 			ImGui::End();
 		}
-
-		world->CloseDB();
 
 		// Rendering
 		ImGui::Render();
