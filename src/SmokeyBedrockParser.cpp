@@ -38,21 +38,26 @@ int main(int argc, char** argv) {
 
 	LoadJson("data/blocks.json");
 
-	auto block = Block::Get("minecraftreinforced_deepslate");
-
-	if (block == nullptr) {
-		log::error("Failed to get block: {}", "minecraft:reinforced_deepslate");
-
-		return -1;
-	}
-
 	world->init(argv[1]);
 	world->OpenDB(argv[1]);
 	world->ParseDB();
 	world->CloseDB();
 	log::info("Done.");
 	log::info("====================================================================================================");
-	world->dimensions[0]->GetChunk(0, 0, 0);
+
+	auto test = world->dimensions[0]->GetChunk(0, 0);
+	std::string name = test[0][0];
+
+	auto block = Block::Get(name);
+
+	if (block == nullptr) {
+		log::error("Failed to get block: {}", name);
+
+		return 1;
+	}
+	else
+		log::error("Failed to Failed to get block: {}", name);
+
 
 	/*
 	nfdchar_t* outPath = NULL;
@@ -243,7 +248,7 @@ int main(int argc, char** argv) {
 					//draw_list->AddRect(ImVec2(canvas_p0.x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p0.y + y), IM_COL32(200, 200, 200, 40));
 					draw_list->AddLine(ImVec2(canvas_p0.x + x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p1.y), IM_COL32(200, 200, 200, 1));
 					draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + y), ImVec2(canvas_p1.x, canvas_p0.y + y), IM_COL32(200, 200, 200, 1));
-					draw_list->AddRectFilled(ImVec2(canvas_p0.x + x, canvas_p0.y + y), ImVec2(origin[0] + GRID_STEP, origin[1] + GRID_STEP), IM_COL32(((int)x % 255), 0, ((int)y % 255), 255));
+					draw_list->AddRectFilled(ImVec2(canvas_p0.x + x, canvas_p0.y + y), ImVec2(origin[0] + GRID_STEP, origin[1] + GRID_STEP), IM_COL32(std::get<0>(block->color), std::get<1>(block->color), std::get<2>(block->color), 255));
 				}
 			}
 

@@ -185,7 +185,6 @@ namespace smokey_bedrock_parser {
 						}
 					}
 
-					log::trace("Block ID: {}, (x: {}, y: {}, z: {})", block_id, x + chunk_x * 16, actual_y, z + chunk_z * 16);
 				}
 			}
 		}

@@ -61,33 +61,30 @@ namespace smokey_bedrock_parser {
 			size_t buffer_length) {
 			ChunkKey key(chunk_x, chunk_z);
 
-			if (chunk_format_version == 7)
-			{
+			if (chunk_format_version == 7) {
 				if (!chunks_has_key(chunks, key))
 					chunks[key] = std::unique_ptr<Chunk>(new Chunk());
 
-
 				chunks[key]->ParseChunk(chunk_x, chunk_y, chunk_z, buffer, buffer_length, dimension_id, dimension_name);
-				for (int32_t i = 0; i < 16; i++)
-					for (int32_t a = 0; a < 16; a++)
-						log::trace("Block: {} at Y={}", chunks[key]->blocks[i][a], chunks[key]->top_blocks[i][a]);
-
-
 
 				return 0;
 			}
 			else {
 				log::error("Unknown chunk format version (version = {})", chunk_format_version);
-				return -1;
+
+				return 1;
 			}
 		};
 
-		int32_t GetChunk(int32_t chunk_x, int32_t chunk_y, int32_t chunk_z) {
-			ChunkKey key(chunk_x, chunk_z);
+		auto GetChunk(uint32_t x, uint32_t z) {
+			ChunkKey key(x / 16, z / 16);
 
-			log::info("Block: {} at Y={}", chunks[key]->blocks[chunk_x][chunk_z], chunks[key]->top_blocks[chunk_x][chunk_z]);
+			if (!chunks_has_key(chunks, key)) {
+				log::error("Chunk at ({}, {}) does not exist", x, z);
+				exit(1);
+			}
 
-			return 0;
+			return chunks[key]->blocks;
 		};
 
 	private:

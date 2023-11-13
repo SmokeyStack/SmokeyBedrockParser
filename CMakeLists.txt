@@ -33,6 +33,8 @@ file(GLOB_RECURSE SRC_FILES src/*.cpp include/*cpp)
 file(GLOB_RECURSE HEADER_FILES include/*.h include/*.hpp)
 add_library(${LIB_NAME} STATIC ${SRC_FILES})
 
+file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 add_subdirectory(third-party/leveldb-mcpe)
 add_subdirectory(third-party/spdlog)
 add_subdirectory(third-party/libnbtplusplus)

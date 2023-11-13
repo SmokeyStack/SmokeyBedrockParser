@@ -7,7 +7,8 @@
 #include "minecraft/block.h"
 
 std::map<std::string, std::tuple<int, int, int>> color_map = {
-	{"DEEPSLATE", std::make_tuple(100, 100, 100)}
+	{"DEEPSLATE", std::make_tuple(100, 100, 100)},
+	{"GRASS", std::make_tuple(127, 178, 56)}
 };
 
 namespace smokey_bedrock_parser {
@@ -17,7 +18,7 @@ namespace smokey_bedrock_parser {
 		for (auto& [key, val] : json.items()) {
 			for (auto& [inner_key, inner_val] : val.items()) {
 				std::string name = inner_val.dump().c_str();
-				std::tuple<int, int, int> color;
+				std::tuple<int, int, int> color;;
 				name = name.substr(1, name.size() - 2);
 
 				if (color_map.find(key) != color_map.end())
