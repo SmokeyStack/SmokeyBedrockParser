@@ -5,7 +5,7 @@
 
 #include "logger.h"
 #include "world/dimension.h"
-
+#include "util.h"
 
 namespace smokey_bedrock_parser {
 	class MinecraftWorld {
@@ -76,11 +76,11 @@ namespace smokey_bedrock_parser {
 			CloseDB();
 		}
 
-		int32_t init(std::string db_directory);
+		int init(std::string db_directory);
 
-		int32_t OpenDB(std::string db_directory);
+		int OpenDB(std::string db_directory);
 
-		int32_t CloseDB() {
+		int CloseDB() {
 			if (db != nullptr) {
 				delete db;
 				db = nullptr;
@@ -89,11 +89,11 @@ namespace smokey_bedrock_parser {
 			return 0;
 		}
 
-		int32_t CalculateTotalRecords();
+		int CalculateTotalRecords();
 
-		int32_t ParseLevelFile(std::string file_name);
+		int ParseLevelFile(std::string file_name);
 
-		int32_t ParseLevelName(std::string file_name) {
+		int ParseLevelName(std::string file_name) {
 			FILE* file = fopen(file_name.c_str(), "r");
 
 			if (!file) {
@@ -122,7 +122,7 @@ namespace smokey_bedrock_parser {
 	private:
 		leveldb::DB* db;
 		std::unique_ptr<leveldb::Options> db_options;
-		int32_t total_record_count;
+		int total_record_count;
 	};
 
 	extern std::unique_ptr<MinecraftWorldLevelDB> world;

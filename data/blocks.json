@@ -18,14 +18,39 @@
   "DEEPSLATE": [
     "minecraft:reinforced_deepslate"
   ],
-  "DIRT": [],
-  "FIRE": [],
+  "DIRT": [
+    "minecraft:jungle_log",
+    "minecraft:dirt"
+  ],
+  "FIRE": [
+    "minecraft:fire",
+    "minecraft:flowing_lava",
+    "minecraft:lava",
+    "minecraft:redstone_block",
+    "minecraft:tnt"
+  ],
   "GRASS": [
     "minecraft:grass",
     "minecraft:slime"
   ],
-  "ICE": [],
-  "METAL": [],
+  "ICE": [
+    "minecraft:blue_ice",
+    "minecraft:frosted_ice",
+    "minecraft:ice",
+    "minecraft:packed_ice"
+  ],
+  "METAL": [
+    "minecraft:anvil",
+    "minecraft:brewing_stand",
+    "minecraft:grindstone",
+    "minecraft:heavy_weighted_pressure_plate",
+    "minecraft:iron_block",
+    "minecraft:iron_door",
+    "minecraft:iron_trapdoor",
+    "minecraft:lantern",
+    "minecraft:lodestone",
+    "minecraft:soul_lantern"
+  ],
   "NONE": [
     "minecraft:air",
     "minecraft:barrier",
@@ -34,7 +59,16 @@
   "PLANT": [
     "minecraft:double_plant",
     "minecraft:leaves",
-    "minecraft:tallgrass"
+    "minecraft:tallgrass",
+    "minecraft:sapling",
+    "minecraft:yellow_flower",
+    "minecraft:red_flower",
+    "minecraft:torchflower",
+    "minecraft:pitcher_plant",
+    "minecraft:wither_rose",
+    "minecraft:wheat",
+    "minecraft:reeds",
+    "minecraft:vine"
   ],
   "QUARTZ": [],
   "SAND": [
@@ -57,9 +91,19 @@
   ],
   "SNOW": [],
   "STONE": [
-    "minecraft:stone"
+    "minecraft:stone",
+    "minecraft:gravel",
+    "minecraft:stonebrick",
+    "minecraft:stone_brick_stairs"
   ],
   "WATER": [],
-  "WOOD": [],
-  "WOOL": []
+  "WOOD": [
+    "minecraft:oak_log"
+  ],
+  "WOOL": [
+    "minecraft:brown_mushroom_block",
+    "minecraft:red_mushroom_block",
+    "minecraft:web",
+    "minecraft:white_candle"
+  ]
 }

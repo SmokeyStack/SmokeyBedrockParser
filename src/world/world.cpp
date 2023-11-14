@@ -4,7 +4,6 @@
 #include <leveldb/decompress_allocator.h>
 #include <leveldb/env.h>
 #include <leveldb/filter_policy.h>
-#include <leveldb/options.h>
 #include <leveldb/zlib_compressor.h>
 #include <regex>
 
@@ -171,17 +170,18 @@ namespace smokey_bedrock_parser {
 
 		// create a reusable memory space for decompression so it allocates less
 		leveldb::ReadOptions readOptions;
-		readOptions.decompress_allocator = new leveldb::DecompressAllocator();
+		leveldb_read_options.decompress_allocator = new leveldb::DecompressAllocator();
 
 		for (int32_t i = 0; i < 3; i++) {
 			dimensions.push_back(std::make_unique<Dimension>());
 			dimensions[i]->set_dimension_id(i);
+			dimensions[i]->UnsetChunkBoundsValid();
 			dimensions[i]->set_dimension_name(dimension_id_names[i]);
 		}
 	}
 
-	int32_t MinecraftWorldLevelDB::init(std::string db_directory) {
-		int32_t result = ParseLevelFile(std::string(db_directory + "/level.dat"));
+	int MinecraftWorldLevelDB::init(std::string db_directory) {
+		int result = ParseLevelFile(std::string(db_directory + "/level.dat"));
 
 		if (result != 0) {
 			log::error("Failed to parse level.dat file.  Exiting...");
@@ -198,10 +198,10 @@ namespace smokey_bedrock_parser {
 	}
 
 	int32_t MinecraftWorldLevelDB::OpenDB(std::string db_directory) {
-		log::info("DB Open: directory={}", db_directory);
+		log::info("Open DB: directory={}", db_directory);
 		db_options = std::make_unique<leveldb::Options>();
 		leveldb::Status status = leveldb::DB::Open(*db_options, std::string(db_directory + "/db").c_str(), &db);
-		log::info("DB Open Status: {}", status.ToString());
+		log::info("DB Status: {}", status.ToString());
 
 		if (!status.ok())
 			log::error("LevelDB operation returned status={}", status.ToString());
@@ -221,8 +221,8 @@ namespace smokey_bedrock_parser {
 		for (int32_t i = 0; i < 3; i++)
 			dimensions[i]->UnsetChunkBoundsValid();
 
-		int32_t record_count = 0;
-		leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
+		int record_count = 0;
+		leveldb::Iterator* it = db->NewIterator(leveldb_read_options);
 		leveldb::Slice key, value;
 		size_t key_size;
 		size_t value_size;
@@ -231,7 +231,7 @@ namespace smokey_bedrock_parser {
 
 		for (it->SeekToFirst(); it->Valid(); it->Next()) {
 			record_count++;
-			key = it->key();
+			/*key = it->key();
 			key_size = (int)key.size();
 			key_name = key.data();
 			value = it->value();
@@ -240,8 +240,10 @@ namespace smokey_bedrock_parser {
 
 			if (IsChunkKey({ key_name,key_size }).first) {
 				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
-				dimensions[chunk_data.chunk_dimension_id]->AddToChunkBounds(chunk_data.chunk_x, chunk_data.chunk_z);
-			}
+
+				if (chunk_data.chunk_tag == ChunkTag::SubChunkPrefix)
+					dimensions[chunk_data.chunk_dimension_id]->AddToChunkBounds(chunk_data.chunk_x, chunk_data.chunk_z);
+			}*/
 		}
 
 		if (!it->status().ok())
@@ -254,12 +256,13 @@ namespace smokey_bedrock_parser {
 			dimensions[i]->ReportChunkBounds();
 		}
 
+		log::info("Total records: {}", record_count);
 		total_record_count = record_count;
 
 		return 0;
 	}
 
-	int32_t MinecraftWorldLevelDB::ParseLevelFile(std::string file_name) {
+	int MinecraftWorldLevelDB::ParseLevelFile(std::string file_name) {
 		FILE* file = fopen(file_name.c_str(), "rb");
 
 		if (!file) {
@@ -308,14 +311,15 @@ namespace smokey_bedrock_parser {
 		return result.first;
 	}
 
-	int32_t MinecraftWorldLevelDB::ParseDB() {
+	int MinecraftWorldLevelDB::ParseDB() {
 		char temp_string[256];
-		log::info("Parsing all leveldb records");
 
 		CalculateTotalRecords();
 
+		log::info("Parsing all leveldb records");
+
 		NbtTagList tag_list;
-		int32_t record_count = 0, result;
+		int record_count = 0, result = 0;
 		leveldb::Slice key, value;
 		size_t key_size;
 		size_t value_size;
@@ -324,7 +328,7 @@ namespace smokey_bedrock_parser {
 		std::string chunk_string;
 		std::vector<std::string> villages;
 		std::vector<uint64_t> actor_ids;
-		leveldb::Iterator* it = db->NewIterator(leveldb::ReadOptions());
+		leveldb::Iterator* it = db->NewIterator(leveldb_read_options);
 
 		// Village Regex
 		const std::regex village_dweller_regex("VILLAGE_[0-9a-f\\-]+_DWELLERS");
@@ -428,8 +432,15 @@ namespace smokey_bedrock_parser {
 			else log::info("Unknown record - key_size={} value_size={}", key_size, value_size);
 		}
 
-		NbtJson test;
-		test.name = "nbt";
+		log::info("Read {} records", record_count);
+		log::info("Status: {}", it->status().ToString());
+
+		if (!it->status().ok())
+			log::warn("LevelDB operation returned status={}", it->status().ToString());
+
+		delete it;
+
+		/*
 
 		for (auto actor_id : actor_ids) {
 			std::string data;
@@ -471,14 +482,7 @@ namespace smokey_bedrock_parser {
 
 			ParseNbtVillage(tags_info, tags_player, tags_dweller, tags_poi);
 		}
-
-		log::info("Read {} records", record_count);
-		log::info("Status: {}", it->status().ToString());
-
-		if (!it->status().ok())
-			log::warn("LevelDB operation returned status={}", it->status().ToString());
-
-		delete it;
+		*/
 
 		return 0;
 	}

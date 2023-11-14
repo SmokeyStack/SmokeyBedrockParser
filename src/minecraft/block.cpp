@@ -33,7 +33,7 @@ namespace smokey_bedrock_parser {
 		if (it != block_map.end())
 			return it->second;
 
-		log::error("Block: {} not found", name);
+		log::trace("Block: {} not found", name);
 		return nullptr;
 	}
 } // namespace smokey_bedrock_parser

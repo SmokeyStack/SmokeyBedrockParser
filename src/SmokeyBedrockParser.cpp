@@ -34,30 +34,11 @@ int main(int argc, char** argv) {
 	world = std::make_unique<MinecraftWorldLevelDB>();
 
 	nfdchar_t* selected_folder = NULL;
+	std::string world_path = "";
 	static bool show_app_property_editor = false;
+	static bool open_file_dialog = false;
 
 	LoadJson("data/blocks.json");
-
-	world->init(argv[1]);
-	world->OpenDB(argv[1]);
-	world->ParseDB();
-	world->CloseDB();
-	log::info("Done.");
-	log::info("====================================================================================================");
-
-	/*
-	nfdchar_t* outPath = NULL;
-	nfdresult_t result = NFD_OpenDialog(NULL, NULL, &outPath);
-
-	if (result == NFD_OKAY) {
-	}
-	else if (result == NFD_CANCEL) {
-		puts("User pressed cancel.");
-	}
-	else {
-		printf("Error: %s\n", NFD_GetError());
-	}*/
-
 
 	glfwSetErrorCallback(GLFWErrorCallback);
 
@@ -186,12 +167,13 @@ int main(int argc, char** argv) {
 			ImGui::SetNextWindowPos(viewport->Pos);
 			ImGui::SetNextWindowSize(viewport->Size);
 
-			if (!ImGui::Begin("NBT", NULL, flags)) {
+			if (!ImGui::Begin("SmokeyStack's Bedrock Parser", NULL, flags)) {
 				ImGui::End();
 			}
 			if (ImGui::BeginMenuBar()) {
 				if (ImGui::BeginMenu("Examples")) {
 					ImGui::MenuItem("Property editor", NULL, &show_app_property_editor);
+					ImGui::MenuItem("Open...", NULL, &open_file_dialog);
 					ImGui::EndMenu();
 				}
 
@@ -201,7 +183,7 @@ int main(int argc, char** argv) {
 			static int grid_step = 256.0f;
 			static int what = 0;
 
-			if (ImGui::SliderInt("Chunk Size", &grid_step, 64, 256)) {
+			if (ImGui::SliderInt("Chunk Size", &grid_step, 16, 256)) {
 				grid_step = (grid_step / 16) * 16;
 			}
 
@@ -239,10 +221,14 @@ int main(int argc, char** argv) {
 				for (float y = fmodf(scrolling.y, grid_step); y < canvas_sz.y; y += grid_step) {
 					draw_list->AddLine(ImVec2(canvas_p0.x + x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p1.y), IM_COL32(200, 200, 200, 1));
 					draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + y), ImVec2(canvas_p1.x, canvas_p0.y + y), IM_COL32(200, 200, 200, 1));
+					world->dimensions[0]->DrawChunk(0, 0, draw_list, origin, grid_step);
 
 					for (int a = world->dimensions[0]->get_min_chunk_x(); a < world->dimensions[0]->get_max_chunk_x(); a++)
 						for (int b = world->dimensions[0]->get_min_chunk_z(); b < world->dimensions[0]->get_max_chunk_z(); b++)
+						{
+							//log::trace("Drawing Chunk ({}, {})", a, b);
 							world->dimensions[0]->DrawChunk(a, b, draw_list, origin, grid_step);
+						}
 				}
 			}
 
@@ -253,18 +239,42 @@ int main(int argc, char** argv) {
 
 		//ImGui::ShowDemoWindow();
 
-		if (show_app_property_editor) {
-			ImGui::SetNextWindowSize(ImVec2(430, 450), ImGuiCond_FirstUseEver);
-			if (!ImGui::Begin("Example: Property editor", &show_app_property_editor)) {
+		{
+			if (show_app_property_editor) {
+				ImGui::SetNextWindowSize(ImVec2(430, 450), ImGuiCond_FirstUseEver);
+				if (!ImGui::Begin("Example: Property editor", &show_app_property_editor)) {
+					ImGui::End();
+				}
+
+				ImGui::Columns(2, "nbt_view");
+				ImGui::Columns(1);
+
 				ImGui::End();
 			}
 
-			ImGui::Columns(2, "nbt_view");
-			/*world->init(argv[1]);
-			world->OpenDB(argv[1]);*/
-			ImGui::Columns(1);
+			if (open_file_dialog) {
+				nfdresult_t result = NFD_PickFolder(NULL, &selected_folder);
 
-			ImGui::End();
+				if (result == NFD_OKAY) {
+					world_path = selected_folder;
+					world->init(world_path);
+					world->OpenDB(world_path);
+					world->ParseDB();
+					world->CloseDB();
+					log::info("Done.");
+					log::info("====================");
+					free(selected_folder);
+					open_file_dialog = false;
+				}
+				else if (result == NFD_CANCEL) {
+					log::trace("User pressed cancel.");
+					open_file_dialog = false;
+				}
+				else {
+					log::error("Error: {}", NFD_GetError());
+				}
+			}
+
 		}
 
 		// Rendering

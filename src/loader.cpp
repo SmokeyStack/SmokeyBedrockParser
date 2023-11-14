@@ -57,6 +57,8 @@ namespace smokey_bedrock_parser {
 			}
 		}
 
+		log::info("Loaded blocks");
+
 		return 0;
 	}
 

@@ -21,6 +21,7 @@ namespace smokey_bedrock_parser {
 		Dimension() {
 			dimension_name = "(UNKNOWN)";
 			dimension_id = -1;
+			chunk_bounds_valid = false;
 			min_chunk_x = INT32_MAX;
 			max_chunk_x = INT32_MIN;
 			min_chunk_z = INT32_MAX;
@@ -76,7 +77,7 @@ namespace smokey_bedrock_parser {
 		}
 
 		void ReportChunkBounds() {
-			log::info("Bounds (chunk): DimId={} X=({} {}) Z=({} {})",
+			log::info("Bounds (chunk): Dimension Id={} X=({} {}) Z=({} {})",
 				dimension_id, min_chunk_x, max_chunk_x, min_chunk_z, max_chunk_z);
 		}
 
@@ -110,7 +111,12 @@ namespace smokey_bedrock_parser {
 			ChunkKey key(x, z);
 
 			if (!chunks_has_key(chunks, key))
+			{
+				log::trace("Chunk does not exist (x = {}, z = {})", x, z);
 				return false;
+			}
+
+			//log::info("Chunk does exist (x = {}, z = {})", x, z);
 
 			return true;
 		};
@@ -146,7 +152,7 @@ namespace smokey_bedrock_parser {
 		ChunkMap chunks;
 		int min_chunk_x, max_chunk_x;
 		int min_chunk_z, max_chunk_z;
-		bool chunk_bounds_valid = false;
+		bool chunk_bounds_valid;
 
 		bool chunks_has_key(const ChunkMap& m, const ChunkKey& k) {
 			return m.find(k) != m.end();
