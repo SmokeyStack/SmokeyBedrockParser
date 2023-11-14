@@ -20,62 +20,7 @@ static void GLFWErrorCallback(int error, const char* description) {
 	smokey_bedrock_parser::log::error("GLFW Error {}: {}", error, description);
 }
 
-int main(int argc, char** argv) {
-	using namespace smokey_bedrock_parser;
-
-	SetupLoggerStage1();
-
-	auto console_log_level = Level::Info;
-	auto file_log_level = Level::Trace;
-	std::filesystem::path log_directory = "logs/debug.log";
-
-	SetupLoggerStage2(log_directory, console_log_level, file_log_level);
-
-	world = std::make_unique<MinecraftWorldLevelDB>();
-
-	nfdchar_t* selected_folder = NULL;
-	std::string world_path = "";
-	static bool show_app_property_editor = false;
-	static bool open_file_dialog = false;
-
-	LoadJson("data/blocks.json");
-
-	glfwSetErrorCallback(GLFWErrorCallback);
-
-	if (!glfwInit())
-		return 1;
-
-#if defined(IMGUI_IMPL_OPENGL_ES2)
-	// GL ES 2.0 + GLSL 100
-	const char* glsl_version = "#version 100";
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-#elif defined(__APPLE__)
-	// GL 3.2 + GLSL 150
-	const char* glsl_version = "#version 150";
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
-#else
-	// GL 3.0 + GLSL 130
-	const char* glsl_version = "#version 130";
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-#endif
-
-	GLFWwindow* window = glfwCreateWindow(1080, 720, "SmokeyBedrockParser", nullptr, nullptr);
-
-	if (window == nullptr)
-		return 1;
-
-	glfwMakeContextCurrent(window);
-
-	glfwSwapInterval(1); // Enable vsync
-
+void SetupImGuiConfigs() {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -144,17 +89,74 @@ int main(int argc, char** argv) {
 		style.WindowRounding = 0.0f;
 		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
 	}
+}
+
+int main(int argc, char** argv) {
+	using namespace smokey_bedrock_parser;
+
+	SetupLoggerStage1();
+
+	auto console_log_level = Level::Info;
+	auto file_log_level = Level::Trace;
+	std::filesystem::path log_directory = "logs/debug.log";
+
+	SetupLoggerStage2(log_directory, console_log_level, file_log_level);
+
+	world = std::make_unique<MinecraftWorldLevelDB>();
+
+	nfdchar_t* selected_folder = NULL;
+	std::string world_path = "";
+	static bool show_app_property_editor = false;
+	static bool open_file_dialog = false;
+
+	LoadJson("data/blocks.json");
+	glfwSetErrorCallback(GLFWErrorCallback);
+
+	if (!glfwInit()) return 1;
+
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	GLFWwindow* window = glfwCreateWindow(1080, 720, "SmokeyBedrockParser", nullptr, nullptr);
+
+	if (window == nullptr) {
+		glfwTerminate();
+
+		return 1;
+	}
+
+	glfwMakeContextCurrent(window);
+	glfwSwapInterval(1); // Enable vsync
+	SetupImGuiConfigs();
+
+#if defined(IMGUI_IMPL_OPENGL_ES2)
+	// GL ES 2.0 + GLSL 100
+	const char* glsl_version = "#version 100";
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+#elif defined(__APPLE__)
+	// GL 3.2 + GLSL 150
+	const char* glsl_version = "#version 150";
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // Required on Mac
+#else
+	// GL 3.0 + GLSL 130
+	const char* glsl_version = "#version 130";
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
+#endif
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
-	bool show_demo_window = true;
-	bool show_another_window = false;
-	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	while (!glfwWindowShouldClose(window)) {
-		glfwPollEvents();
-
 		// Start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -236,8 +238,6 @@ int main(int argc, char** argv) {
 			ImGui::End();
 		}
 
-		//ImGui::ShowDemoWindow();
-
 		{
 			if (show_app_property_editor) {
 				ImGui::SetNextWindowSize(ImVec2(430, 450), ImGuiCond_FirstUseEver);
@@ -276,24 +276,23 @@ int main(int argc, char** argv) {
 
 		}
 
+		//ImGui::ShowDemoWindow();
+
 		// Rendering
 		ImGui::Render();
 
-		int display_w, display_h;
-		glfwGetFramebufferSize(window, &display_w, &display_h);
-		glViewport(0, 0, display_w, display_h);
-		glClearColor(0.5, 0.5, 0.5, 1.0);
+		glClearColor(0.5, 0.5, 0.5, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 		glfwSwapBuffers(window);
+		glfwPollEvents();
 	}
 
+	// Shutdown ImGui
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 
-	glfwDestroyWindow(window);
 	glfwTerminate();
 
 	return 0;
