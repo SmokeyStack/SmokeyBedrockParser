@@ -221,7 +221,6 @@ int main(int argc, char** argv) {
 				for (float y = fmodf(scrolling.y, grid_step); y < canvas_sz.y; y += grid_step) {
 					draw_list->AddLine(ImVec2(canvas_p0.x + x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p1.y), IM_COL32(200, 200, 200, 1));
 					draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + y), ImVec2(canvas_p1.x, canvas_p0.y + y), IM_COL32(200, 200, 200, 1));
-					world->dimensions[0]->DrawChunk(0, 0, draw_list, origin, grid_step);
 
 					for (int a = world->dimensions[0]->get_min_chunk_x(); a < world->dimensions[0]->get_max_chunk_x(); a++)
 						for (int b = world->dimensions[0]->get_min_chunk_z(); b < world->dimensions[0]->get_max_chunk_z(); b++)

@@ -1,10 +1,8 @@
 #include "world/world.h"
 
 #include <leveldb/cache.h>
-#include <leveldb/decompress_allocator.h>
 #include <leveldb/env.h>
 #include <leveldb/filter_policy.h>
-#include <leveldb/zlib_compressor.h>
 #include <regex>
 
 #include "json.hpp"
@@ -142,35 +140,30 @@ namespace {
 namespace smokey_bedrock_parser {
 	MinecraftWorldLevelDB::MinecraftWorldLevelDB() {
 		db = nullptr;
-		db_options = std::make_unique<leveldb::Options>();
 
-		// create a bloom filter to quickly tell if a key is in the database or
-		// not
+		leveldb_read_options.fill_cache = false;
+		// suggestion from leveldb/mcpe_sample_setup.cpp
+		leveldb_read_options.decompress_allocator = new leveldb::DecompressAllocator();
+
+
+		db_options = std::make_unique<leveldb::Options>();
+		//dbOptions->compressors[0] = new leveldb::ZlibCompressor();
+		db_options->create_if_missing = false;
+
+		// this filter is supposed to reduce disk reads - light testing indicates that it is faster when doing 'html-all'
+
 		db_options->filter_policy = leveldb::NewBloomFilterPolicy(10);
 
-		// create a 40 mb cache (we use this on ~1gb devices)
+
+		db_options->block_size = 4096;
+
+		//create a 40 mb cache (we use this on ~1gb devices)
 		db_options->block_cache = leveldb::NewLRUCache(40 * 1024 * 1024);
 
-		// create a 4mb write buffer, to improve compression and touch the disk
-		// less
+		//create a 4mb write buffer, to improve compression and touch the disk less
 		db_options->write_buffer_size = 4 * 1024 * 1024;
-
-		// disable internal logging. The default logger will still print out
-		// things to a file
 		db_options->info_log = new NullLogger();
-
-		// use the new raw-zip compressor to write (and read)
-		auto zlib_raw_compressor = std::make_unique<leveldb::ZlibCompressorRaw>(-1);
-		db_options->compressors[0] = zlib_raw_compressor.get();
-
-		// also setup the old, slower compressor for backwards compatibility.
-		// This will only be used to read old compressed blocks.
-		auto zlib_compressor = std::make_unique<leveldb::ZlibCompressor>();
-		db_options->compressors[1] = zlib_compressor.get();
-
-		// create a reusable memory space for decompression so it allocates less
-		leveldb::ReadOptions readOptions;
-		leveldb_read_options.decompress_allocator = new leveldb::DecompressAllocator();
+		db_options->compression = leveldb::kZlibRawCompression;
 
 		for (int32_t i = 0; i < 3; i++) {
 			dimensions.push_back(std::make_unique<Dimension>());
@@ -221,6 +214,7 @@ namespace smokey_bedrock_parser {
 		for (int32_t i = 0; i < 3; i++)
 			dimensions[i]->UnsetChunkBoundsValid();
 
+		log::info("Calculating total leveldb records, this might take a while...");
 		int record_count = 0;
 		leveldb::Iterator* it = db->NewIterator(leveldb_read_options);
 		leveldb::Slice key, value;
@@ -231,7 +225,7 @@ namespace smokey_bedrock_parser {
 
 		for (it->SeekToFirst(); it->Valid(); it->Next()) {
 			record_count++;
-			/*key = it->key();
+			key = it->key();
 			key_size = (int)key.size();
 			key_name = key.data();
 			value = it->value();
@@ -243,7 +237,7 @@ namespace smokey_bedrock_parser {
 
 				if (chunk_data.chunk_tag == ChunkTag::SubChunkPrefix)
 					dimensions[chunk_data.chunk_dimension_id]->AddToChunkBounds(chunk_data.chunk_x, chunk_data.chunk_z);
-			}*/
+			}
 		}
 
 		if (!it->status().ok())
@@ -429,7 +423,7 @@ namespace smokey_bedrock_parser {
 					break;
 				}
 			}
-			else log::info("Unknown record - key_size={} value_size={}", key_size, value_size);
+			else log::error("Unknown record - key_size={} value_size={}", key_size, value_size);
 		}
 
 		log::info("Read {} records", record_count);
