@@ -35,7 +35,7 @@ add_library(${LIB_NAME} STATIC ${SRC_FILES})
 
 file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-add_subdirectory(third-party/leveldb-mcpe)
+add_subdirectory(third-party/leveldb)
 add_subdirectory(third-party/spdlog)
 add_subdirectory(third-party/libnbtplusplus)
 add_subdirectory(third-party/glfw)
