@@ -5,7 +5,9 @@
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
-#include <glm/fwd.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
@@ -19,33 +21,14 @@
 #include "loader.h"
 #include "minecraft/block.h"
 #include "world/world.h"
+#include "shader.h"
+#include "renderer/index_buffer.h"
+#include "renderer/vertex_buffer.h"
+
 
 static void GLFWErrorCallback(int error, const char* description) {
 	smokey_bedrock_parser::log::error("GLFW Error {}: {}", error, description);
 }
-
-const char* vertexShaderSource = R"(
-#version 460 core
-layout (location = 0) in vec4 aColor;
-layout (location = 1) in vec3 aPosition;
-
-out vec4 fColor;
-
-void main()
-{
-    fColor = aColor;
-    gl_Position = vec4(aPosition, 1.0);
-})";
-const char* fragmentShaderSource = R"(
-#version 460 core
-out vec4 FragColor;
-
-in vec4 fColor;
-
-void main()
-{
-    FragColor = fColor;
-})";
 
 void SetupImGuiConfigs() {
 	IMGUI_CHECKVERSION();
@@ -146,10 +129,6 @@ int main(int argc, char** argv) {
 
 	if (!glfwInit()) return 1;
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
 	GLFWwindow* window = glfwCreateWindow(1080, 720, "SmokeyBedrockParser", nullptr, nullptr);
 
 	if (window == nullptr) {
@@ -166,85 +145,44 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	glViewport(0, 0, 720, 720);
+	glViewport(0, 0, 1080, 720);
 
 	glfwSwapInterval(1); // Enable vsync
 
 	/*
 	* Shader stuff
 	*/
-	unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-	glCompileShader(vertexShader);
-
-	int success;
-	char infoLog[512];
-	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-	if (!success)
-	{
-		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-		log::error("ERROR::SHADER::VERTEX::COMPILATION_FAILED");
-		log::error("{}", infoLog);
-	}
-
-	unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-	glCompileShader(fragmentShader);
-	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-	if (!success)
-	{
-		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-		log::error("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED");
-		log::error("{}", infoLog);
-	}
-
-	unsigned int shaderProgram;
-	shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, vertexShader);
-	glAttachShader(shaderProgram, fragmentShader);
-	glLinkProgram(shaderProgram);
-
-	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-	if (!success) {
-		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-		log::error("ERROR::SHADER::PROGRAM::LINKING_FAILED");
-		log::error("{}", infoLog);
-	}
-
-	glDeleteShader(vertexShader);
-	glDeleteShader(fragmentShader);
+	Shader shaderProgram("data/cameravs.txt", "data/camerafs.txt");
 
 	Vertex triangle[4]{
-		{glm::vec3(0.5f, 0.5f, 0.0f), glm::vec4(1,1,1,1)},
-		{glm::vec3(0.5f, -0.5f, 0.0f), glm::vec4(1,1,1,1)},
-		{glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec4(1,1,1,1)},
-		{glm::vec3(-0.5f,  0.5f, 0.0f), glm::vec4(1,1,1,1)}
+		{glm::vec3(200.5f, 200.5f, 0.0f), glm::vec4(1,1,1,1)},
+		{glm::vec3(200.5f, 100.5f, 0.0f), glm::vec4(1,1,1,1)},
+		{glm::vec3(100.5f, 100.5f, 0.0f), glm::vec4(1,1,1,1)},
+		{glm::vec3(100.5f,  200.5f, 0.0f), glm::vec4(1,1,1,1)}
 
 	};
 
-	uint32_t indices[] = {  // note that we start from 0!
-	0, 1, 3,   // first triangle
-	1, 2, 3    // second triangle
+	uint32_t indices[6] = {  // note that we start from 0!
+		0, 1, 3,  // first Triangle
+		1, 2, 3   // second Triangle
 	};
 
-	uint32_t VAO, VBO, EBO;
+	uint32_t VAO;
 	glCreateVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
 	glBindVertexArray(VAO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
+	VertexBuffer vb(triangle, sizeof(triangle));
+
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 	glEnableVertexAttribArray(1);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+	IndexBuffer ib(indices, 6);
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+	glm::mat4 MVP = glm::ortho(0.0f, 1080.0f, 0.0f, 720.0f, -1.0f, 1.0f);
+
+	shaderProgram.setMat4("MVP", MVP);
 
 	//SetupImGuiConfigs();
 
@@ -407,12 +345,19 @@ int main(int argc, char** argv) {
 
 		glClearColor(0.5, 0.5, 0.5, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
-		glUseProgram(shaderProgram);
+
+		shaderProgram.use();
+		shaderProgram.setMat4("MVP", MVP);
+
 		glBindVertexArray(VAO);
-		glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, 0);
+		ib.Bind();
+
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-}
+	}
 
 #if false
 	ImGui_ImplOpenGL3_Shutdown();
