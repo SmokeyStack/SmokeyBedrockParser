@@ -1,36 +1,31 @@
 #include <cstdint>
-#include <cstdio>
 #include <filesystem>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
-#include <iostream>
 #include <leveldb/cache.h>
 #include <leveldb/db.h>
 #include <nfd.h>
-#include <stdio.h>
-#include <string>
 
 #include "loader.h"
 #include "minecraft/block.h"
-#include "world/world.h"
-#include "renderer/shader.h"
 #include "renderer/index_buffer.h"
+#include "renderer/shader.h"
 #include "renderer/vertex_buffer.h"
+#include "world/world.h"
 
 
 static void GLFWErrorCallback(int error, const char* description) {
 	smokey_bedrock_parser::log::error("GLFW Error {}: {}", error, description);
 }
 
-void SetupImGuiConfigs(ImGuiIO& io) {
+static void SetupImGuiConfigs(ImGuiIO& io) {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
