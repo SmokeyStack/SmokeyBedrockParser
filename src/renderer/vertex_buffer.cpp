@@ -4,7 +4,6 @@
 
 namespace smokey_bedrock_parser {
 	VertexBuffer::VertexBuffer(const void* data, uint32_t size) {
-		log::info("Creating vertex buffer of size {}", renderer_id);
 		glGenBuffers(1, &renderer_id);
 		glBindBuffer(GL_ARRAY_BUFFER, renderer_id);
 		glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);

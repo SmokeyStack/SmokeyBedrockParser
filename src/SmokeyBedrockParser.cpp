@@ -21,7 +21,7 @@
 #include "loader.h"
 #include "minecraft/block.h"
 #include "world/world.h"
-#include "shader.h"
+#include "renderer/shader.h"
 #include "renderer/index_buffer.h"
 #include "renderer/vertex_buffer.h"
 
@@ -30,11 +30,10 @@ static void GLFWErrorCallback(int error, const char* description) {
 	smokey_bedrock_parser::log::error("GLFW Error {}: {}", error, description);
 }
 
-void SetupImGuiConfigs() {
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
+void SetupImGuiConfigs(ImGuiIO& io) {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
@@ -152,19 +151,19 @@ int main(int argc, char** argv) {
 	/*
 	* Shader stuff
 	*/
-	Shader shaderProgram("data/cameravs.txt", "data/camerafs.txt");
+	Shader shaderProgram("data/camera.vertex", "data/camera.fragment");
 
 	Vertex triangle[4]{
-		{glm::vec3(200.5f, 200.5f, 0.0f), glm::vec4(1,1,1,1)},
-		{glm::vec3(200.5f, 100.5f, 0.0f), glm::vec4(1,1,1,1)},
-		{glm::vec3(100.5f, 100.5f, 0.0f), glm::vec4(1,1,1,1)},
-		{glm::vec3(100.5f,  200.5f, 0.0f), glm::vec4(1,1,1,1)}
+		{glm::vec3(0.0f, 0.f, 0.0f), glm::vec4(1,1,1,1)},
+		{glm::vec3(16.0f, 0.0f, 0.0f), glm::vec4(1,1,1,1)},
+		{glm::vec3(16.0f, 16.0f, 0.0f), glm::vec4(1,1,1,1)},
+		{glm::vec3(0.0f,  16.0f, 0.0f), glm::vec4(1,1,1,1)}
 
 	};
 
 	uint32_t indices[6] = {  // note that we start from 0!
-		0, 1, 3,  // first Triangle
-		1, 2, 3   // second Triangle
+		0, 1, 2,  // first Triangle
+		2, 3, 0   // second Triangle
 	};
 
 	uint32_t VAO;
@@ -180,11 +179,14 @@ int main(int argc, char** argv) {
 
 	IndexBuffer ib(indices, 6);
 
-	glm::mat4 MVP = glm::ortho(0.0f, 1080.0f, 0.0f, 720.0f, -1.0f, 1.0f);
+	glm::mat4 projection = glm::ortho((-1080.0f / 2.0f), (1080.0f / 2.0f), (-720.0f / 2.0f), (720.0f / 2.0f), -1.0f, 1.0f);
+	glm::vec3 translation(0.0f, 0.0f, 0.0f);
+	glm::vec3 translation2(100.0f, 0.0f, 0.0f);
 
-	shaderProgram.setMat4("MVP", MVP);
-
-	//SetupImGuiConfigs();
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	SetupImGuiConfigs(io);
 
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 	// GL ES 2.0 + GLSL 100
@@ -208,18 +210,19 @@ int main(int argc, char** argv) {
 	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
 
-#if false
+#if true
 	// Setup Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 #endif
 
 	while (!glfwWindowShouldClose(window)) {
-#if false
 		// Start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+#if false
+
 
 		{
 			static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar;
@@ -336,30 +339,54 @@ int main(int argc, char** argv) {
 			}
 
 		}
+#endif
+
+		//ImGui::ShowDemoWindow();
+
+		{
+			ImGui::Begin("Debug");
+			ImGui::SliderFloat3("float", &translation.x, 0.0f, 100.0f);
+			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+			ImGui::End();
+		}
 
 		// Rendering
 		ImGui::Render();
 
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-#endif
-
 		glClearColor(0.5, 0.5, 0.5, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		shaderProgram.use();
-		shaderProgram.setMat4("MVP", MVP);
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-		glBindVertexArray(VAO);
-		ib.Bind();
+		{
+			shaderProgram.Bind();
+			glm::mat4 model = glm::translate(glm::mat4(1.0f), translation);
+			glm::mat4 mvp = projection * model;
+			shaderProgram.SetMat4("mvp", mvp);
+
+			glBindVertexArray(VAO);
+			ib.Bind();
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		}
+
+		{
+			shaderProgram.Bind();
+			glm::mat4 model = glm::translate(glm::mat4(1.0f), translation2);
+			glm::mat4 mvp = projection * model;
+			shaderProgram.SetMat4("mvp", mvp);
+			glBindVertexArray(VAO);
+			ib.Bind();
+			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+		}
 
 		//glDrawArrays(GL_TRIANGLES, 0, 3);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
-#if false
+#if true
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();

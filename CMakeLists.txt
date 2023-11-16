@@ -29,7 +29,7 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-file(GLOB_RECURSE SRC_FILES src/*.cpp include/*cpp)
+file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.c include/*cpp)
 file(GLOB_RECURSE HEADER_FILES include/*.h include/*.hpp)
 add_library(${LIB_NAME} STATIC ${SRC_FILES})
 
@@ -39,6 +39,7 @@ add_subdirectory(third-party/leveldb)
 add_subdirectory(third-party/spdlog)
 add_subdirectory(third-party/libnbtplusplus)
 add_subdirectory(third-party/glfw)
+add_subdirectory(third-party/glm)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -59,7 +60,7 @@ target_include_directories(${LIB_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${LIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 target_link_libraries(${LIB_NAME}
-  leveldb spdlog nbt++ glfw OpenGL::GL unofficial::nativefiledialog::nfd
+  leveldb spdlog nbt++ glfw glm OpenGL::GL unofficial::nativefiledialog::nfd
 )
 
 add_executable(${BIN_NAME} src/SmokeyBedrockParser.cpp)
