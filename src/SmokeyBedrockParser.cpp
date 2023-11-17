@@ -96,31 +96,37 @@ static void SetupImGuiConfigs(ImGuiIO& io) {
 }
 
 struct Vertex {
-	glm::vec3 position;
+	glm::vec2 position;
 	glm::vec4 color;
+	int grid_step;
 };
 
 static std::array<Vertex, 4> CreateQuads(float x, float y, glm::vec3 color, int step) {
 	Vertex v0;
-	v0.position = glm::vec3(x, y, 0.0f);
+	v0.position = glm::vec2(x, y);
 	v0.color = glm::vec4(color, 1.0f);
+	v0.grid_step = step;
 
 	Vertex v1;
-	v1.position = glm::vec3(x + step, y, 0.0f);
+	v1.position = glm::vec2(x + step, y);
 	v1.color = glm::vec4(color, 1.0f);
+	v1.grid_step = step;
 
 	Vertex v2;
-	v2.position = glm::vec3(x + step, y + step, 0.0f);
+	v2.position = glm::vec2(x + step, y + step);
 	v2.color = glm::vec4(color, 1.0f);
+	v2.grid_step = step;
 
 	Vertex v3;
-	v3.position = glm::vec3(x, y + step, 0.0f);
+	v3.position = glm::vec2(x, y + step);
 	v3.color = glm::vec4(color, 1.0f);
+	v3.grid_step = step;
 
 	return { v0,v1,v2,v3 };
 }
 
 int main(int argc, char** argv) {
+	// Setup SmokeyBedrockParser
 	using namespace smokey_bedrock_parser;
 
 	SetupLoggerStage1();
@@ -132,13 +138,14 @@ int main(int argc, char** argv) {
 	SetupLoggerStage2(log_directory, console_log_level, file_log_level);
 
 	world = std::make_unique<MinecraftWorldLevelDB>();
-
 	nfdchar_t* selected_folder = NULL;
 	std::string world_path = "";
 	static bool show_app_property_editor = false;
 	static bool open_file_dialog = false;
 
 	LoadJson("data/blocks.json");
+
+	// Setup GLFW
 	glfwSetErrorCallback(GLFWErrorCallback);
 
 	if (!glfwInit()) return 1;
@@ -163,10 +170,8 @@ int main(int argc, char** argv) {
 
 	glfwSwapInterval(1); // Enable vsync
 
-	/*
-	* Shader stuff
-	*/
-	Shader shaderProgram("data/camera.vertex", "data/camera.fragment");
+	// Setup Shader
+	Shader shader("data/camera.vertex", "data/camera.fragment");
 
 	const int max_blocks = 256;
 	const int max_index = 6 * max_blocks;
@@ -196,6 +201,8 @@ int main(int argc, char** argv) {
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, grid_step));
+	glEnableVertexAttribArray(2);
 
 	IndexBuffer ib(indices, sizeof(indices));
 
@@ -232,20 +239,16 @@ int main(int argc, char** argv) {
 	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
 
-#if true
-	// Setup Platform/Renderer backends
+	// Setup ImGui Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
-#endif
 
 	while (!glfwWindowShouldClose(window)) {
 		// Start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-#if false
-
-
+#if true
 		{
 			static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar;
 
@@ -253,9 +256,9 @@ int main(int argc, char** argv) {
 			ImGui::SetNextWindowPos(viewport->Pos);
 			ImGui::SetNextWindowSize(viewport->Size);
 
-			if (!ImGui::Begin("SmokeyStack's Bedrock Parser", NULL, flags)) {
+			if (!ImGui::Begin("SmokeyStack's Bedrock Parser", NULL, flags))
 				ImGui::End();
-			}
+
 			if (ImGui::BeginMenuBar()) {
 				if (ImGui::BeginMenu("Examples")) {
 					ImGui::MenuItem("Property editor", NULL, &show_app_property_editor);
@@ -266,63 +269,31 @@ int main(int argc, char** argv) {
 				ImGui::EndMenuBar();
 			}
 
+			ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+			glm::mat4 projection = glm::ortho((-canvas_size.x / 2.0f), (canvas_size.x / 2.0f), (-canvas_size.y / 2.0f), (canvas_size.y / 2.0f), -1.0f, 1.0f);
 			static int grid_step = 256.0f;
-			static int what = 0;
 
-			if (ImGui::SliderInt("Chunk Size", &grid_step, 16, 256)) {
+			if (ImGui::SliderInt("Chunk Size", &grid_step, 16, 256))
 				grid_step = (grid_step / 16) * 16;
-			}
 
-			ImGui::InputInt("What", &what);
+			ImGui::SameLine();
+			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
-			static ImVec2 scrolling(0.0f, 0.0f);
+			Vertex vertices[max_vertices];
+			size_t offset = 0;
 
-			// Using InvisibleButton() as a convenience 1) it will advance the layout cursor and 2) allows us to use IsItemHovered()/IsItemActive()
-			ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
-			ImVec2 canvas_sz = ImGui::GetContentRegionAvail();   // Resize canvas to what's available
-			if (canvas_sz.x < 50.0f) canvas_sz.x = 50.0f;
-			if (canvas_sz.y < 50.0f) canvas_sz.y = 50.0f;
-			ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
-
-			ImGuiIO& io = ImGui::GetIO();
-			ImDrawList* draw_list = ImGui::GetWindowDrawList();
-			draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(50, 50, 50, 255));
-			draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(255, 255, 255, 255));
-
-			// This will catch our interactions
-			ImGui::InvisibleButton("canvas", canvas_sz, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
-			const bool is_hovered = ImGui::IsItemHovered(); // Hovered
-			const bool is_active = ImGui::IsItemActive();   // Held
-			const ImVec2 origin(canvas_p0.x + scrolling.x, canvas_p0.y + scrolling.y); // Lock scrolled origin
-			const ImVec2 mouse_pos_in_canvas(io.MousePos.x - origin.x, io.MousePos.y - origin.y);
-
-			if (is_active && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
-				scrolling.x += io.MouseDelta.x;
-				scrolling.y += io.MouseDelta.y;
-			}
-
-			draw_list->PushClipRect(canvas_p0, canvas_p1, true);
-
-			for (float x = fmodf(scrolling.x, grid_step); x < canvas_sz.x; x += grid_step) {
-				for (float y = fmodf(scrolling.y, grid_step); y < canvas_sz.y; y += grid_step) {
-					draw_list->AddLine(ImVec2(canvas_p0.x + x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p1.y), IM_COL32(200, 200, 200, 1));
-					draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + y), ImVec2(canvas_p1.x, canvas_p0.y + y), IM_COL32(200, 200, 200, 1));
-
-					for (int a = world->dimensions[0]->get_min_chunk_x(); a < world->dimensions[0]->get_max_chunk_x(); a++)
-						for (int b = world->dimensions[0]->get_min_chunk_z(); b < world->dimensions[0]->get_max_chunk_z(); b++)
-						{
-							//log::trace("Drawing Chunk ({}, {})", a, b);
-							world->dimensions[0]->DrawChunk(a, b, draw_list, origin, grid_step);
-						}
+			for (int x = 0; x < 16; x++) {
+				for (int y = 0; y < 16; y++) {
+					auto quad = CreateQuads(x * grid_step / 16, y * grid_step / 16, glm::vec3(r, x / 32.0f, y / 32.0f), grid_step / 16);
+					memcpy(vertices + offset, quad.data(), sizeof(Vertex) * quad.size());
+					offset += quad.size();
 				}
 			}
 
-			draw_list->PopClipRect();
+			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 
 			ImGui::End();
 		}
-
-		//ImGui::ShowDemoWindow();
 
 		{
 			if (show_app_property_editor) {
@@ -359,24 +330,15 @@ int main(int argc, char** argv) {
 					log::error("Error: {}", NFD_GetError());
 				}
 			}
-
 		}
 #endif
 
 		//ImGui::ShowDemoWindow();
 
-		{
-			ImGui::Begin("Debug");
-			ImGui::SliderFloat2("float", &translation.x, 0.0f, 100.0f);
-			ImGui::SliderFloat("int", &r, 0, 1);
-			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-			ImGui::End();
-		}
-
 		// Rendering
 		ImGui::Render();
 
-		Vertex vertices[max_vertices];
+		/*Vertex vertices[max_vertices];
 		size_t offset = 0;
 
 		for (int x = 0; x < 16; x++) {
@@ -387,16 +349,16 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);*/
 		glClearColor(0.5, 0.5, 0.5, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		{
-			shaderProgram.Bind();
+			shader.Bind();
 			glm::mat4 model = glm::translate(glm::mat4(1.0f), -translation);
 			glm::mat4 mvp = projection * model;
-			shaderProgram.SetMat4("mvp", mvp);
+			shader.SetMat4("mvp", mvp);
 
 			glBindVertexArray(VAO);
 			ib.Bind();
@@ -409,11 +371,9 @@ int main(int argc, char** argv) {
 		glfwPollEvents();
 	}
 
-#if true
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
-#endif
 
 	glfwTerminate();
 
