@@ -100,6 +100,26 @@ struct Vertex {
 	glm::vec4 color;
 };
 
+static std::array<Vertex, 4> CreateQuads(float x, float y, glm::vec3 color, int step) {
+	Vertex v0;
+	v0.position = glm::vec3(x, y, 0.0f);
+	v0.color = glm::vec4(color, 1.0f);
+
+	Vertex v1;
+	v1.position = glm::vec3(x + step, y, 0.0f);
+	v1.color = glm::vec4(color, 1.0f);
+
+	Vertex v2;
+	v2.position = glm::vec3(x + step, y + step, 0.0f);
+	v2.color = glm::vec4(color, 1.0f);
+
+	Vertex v3;
+	v3.position = glm::vec3(x, y + step, 0.0f);
+	v3.color = glm::vec4(color, 1.0f);
+
+	return { v0,v1,v2,v3 };
+}
+
 int main(int argc, char** argv) {
 	using namespace smokey_bedrock_parser;
 
@@ -148,35 +168,42 @@ int main(int argc, char** argv) {
 	*/
 	Shader shaderProgram("data/camera.vertex", "data/camera.fragment");
 
-	Vertex triangle[4]{
-		{glm::vec3(0.0f, 0.f, 0.0f), glm::vec4(1,1,1,1)},
-		{glm::vec3(16.0f, 0.0f, 0.0f), glm::vec4(1,1,1,1)},
-		{glm::vec3(16.0f, 16.0f, 0.0f), glm::vec4(1,1,1,1)},
-		{glm::vec3(0.0f,  16.0f, 0.0f), glm::vec4(1,1,1,1)}
+	const int max_blocks = 256;
+	const int max_index = 6 * max_blocks;
+	const int max_vertices = 4 * max_blocks;
 
-	};
+	uint32_t indices[max_index];
+	int offset = 0;
 
-	uint32_t indices[6] = {  // note that we start from 0!
-		0, 1, 2,  // first Triangle
-		2, 3, 0   // second Triangle
-	};
+	for (int a = 0; a < max_index; a += 6) {
+		indices[a] = offset;
+		indices[a + 1] = offset + 1;
+		indices[a + 2] = offset + 2;
+
+		indices[a + 3] = offset + 2;
+		indices[a + 4] = offset + 3;
+		indices[a + 5] = offset;
+		offset += 4;
+	}
 
 	uint32_t VAO;
 	glCreateVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-	VertexBuffer vb(triangle, sizeof(triangle));
+	VertexBuffer vb(nullptr, sizeof(Vertex) * max_vertices);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
 	glEnableVertexAttribArray(1);
 
-	IndexBuffer ib(indices, 6);
+	IndexBuffer ib(indices, sizeof(indices));
 
 	glm::mat4 projection = glm::ortho((-1080.0f / 2.0f), (1080.0f / 2.0f), (-720.0f / 2.0f), (720.0f / 2.0f), -1.0f, 1.0f);
 	glm::vec3 translation(0.0f, 0.0f, 0.0f);
 	glm::vec3 translation2(100.0f, 0.0f, 0.0f);
+
+	float r = 0.0f;
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -340,39 +367,40 @@ int main(int argc, char** argv) {
 
 		{
 			ImGui::Begin("Debug");
-			ImGui::SliderFloat3("float", &translation.x, 0.0f, 100.0f);
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+			ImGui::SliderFloat2("float", &translation.x, 0.0f, 100.0f);
+			ImGui::SliderFloat("int", &r, 0, 1);
+			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 			ImGui::End();
 		}
 
 		// Rendering
 		ImGui::Render();
 
+		Vertex vertices[max_vertices];
+		size_t offset = 0;
+
+		for (int x = 0; x < 16; x++) {
+			for (int y = 0; y < 16; y++) {
+				auto quad = CreateQuads(x * 16.0f, y * 16.0f, glm::vec3(r, x / 32.0f, y / 32.0f), 16);
+				memcpy(vertices + offset, quad.data(), sizeof(Vertex) * quad.size());
+				offset += quad.size();
+			}
+		}
+
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
 		glClearColor(0.5, 0.5, 0.5, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
-
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		{
 			shaderProgram.Bind();
-			glm::mat4 model = glm::translate(glm::mat4(1.0f), translation);
+			glm::mat4 model = glm::translate(glm::mat4(1.0f), -translation);
 			glm::mat4 mvp = projection * model;
 			shaderProgram.SetMat4("mvp", mvp);
 
 			glBindVertexArray(VAO);
 			ib.Bind();
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		}
-
-		{
-			shaderProgram.Bind();
-			glm::mat4 model = glm::translate(glm::mat4(1.0f), translation2);
-			glm::mat4 mvp = projection * model;
-			shaderProgram.SetMat4("mvp", mvp);
-			glBindVertexArray(VAO);
-			ib.Bind();
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
+			glDrawElements(GL_TRIANGLES, ib.GetCount(), GL_UNSIGNED_INT, 0);
 		}
 
 		//glDrawArrays(GL_TRIANGLES, 0, 3);

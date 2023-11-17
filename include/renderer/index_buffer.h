@@ -12,6 +12,8 @@ namespace smokey_bedrock_parser {
 
         void Bind();
         void Unbind();
+
+        uint32_t GetCount() const { return count; }
     private:
         uint32_t renderer_id;
         uint32_t count;
