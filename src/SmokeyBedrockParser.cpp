@@ -1,30 +1,33 @@
 #include <cstdint>
-#include <cstdio>
 #include <filesystem>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
-#include <iostream>
 #include <leveldb/cache.h>
 #include <leveldb/db.h>
 #include <nfd.h>
-#include <stdio.h>
-#include <string>
 
 #include "loader.h"
 #include "minecraft/block.h"
+#include "renderer/renderer.h"
+#include "renderer/shader.h"
 #include "world/world.h"
+
 
 static void GLFWErrorCallback(int error, const char* description) {
 	smokey_bedrock_parser::log::error("GLFW Error {}: {}", error, description);
 }
 
-void SetupImGuiConfigs() {
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
+static void SetupImGuiConfigs(ImGuiIO& io) {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
@@ -91,7 +94,31 @@ void SetupImGuiConfigs() {
 	}
 }
 
+
+glm::vec3 camera_position = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 translation(0.0f, 0.0f, 0.0f);
+glm::vec3 translation2(100.0f, 0.0f, 0.0f);
+
+float deltaTime = 0.0f;	// time between current frame and last frame
+float lastFrame = 0.0f;
+
+static void ProcessInput(GLFWwindow* window) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
+
+	float camera_speed = static_cast<float>(2.5 * deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera_position.y += camera_speed;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera_position.y -= camera_speed;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera_position.x -= camera_speed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera_position.x += camera_speed;
+}
+
 int main(int argc, char** argv) {
+	// Setup SmokeyBedrockParser
 	using namespace smokey_bedrock_parser;
 
 	SetupLoggerStage1();
@@ -103,20 +130,17 @@ int main(int argc, char** argv) {
 	SetupLoggerStage2(log_directory, console_log_level, file_log_level);
 
 	world = std::make_unique<MinecraftWorldLevelDB>();
-
 	nfdchar_t* selected_folder = NULL;
 	std::string world_path = "";
 	static bool show_app_property_editor = false;
 	static bool open_file_dialog = false;
 
 	LoadJson("data/blocks.json");
+
+	// Setup GLFW
 	glfwSetErrorCallback(GLFWErrorCallback);
 
 	if (!glfwInit()) return 1;
-
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	GLFWwindow* window = glfwCreateWindow(1080, 720, "SmokeyBedrockParser", nullptr, nullptr);
 
@@ -127,8 +151,27 @@ int main(int argc, char** argv) {
 	}
 
 	glfwMakeContextCurrent(window);
-	glfwSwapInterval(1); // Enable vsync
-	SetupImGuiConfigs();
+
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+		log::error("Failed to initialize GLAD");
+
+		return 1;
+	}
+
+	glfwSwapInterval(0);
+
+	// Setup Shader
+	Shader shader("data/camera.vertex", "data/camera.fragment");
+	shader.Bind();
+
+	Renderer::Init();
+
+	float r = 0.0f;
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	SetupImGuiConfigs(io);
 
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 	// GL ES 2.0 + GLSL 100
@@ -152,91 +195,52 @@ int main(int argc, char** argv) {
 	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
 
-	// Setup Platform/Renderer backends
+	// Setup ImGui Platform/Renderer backends
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	while (!glfwWindowShouldClose(window)) {
+		float currentFrame = static_cast<float>(glfwGetTime());
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
+		ProcessInput(window);
+
 		// Start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+		static int grid_step = 256.0f;
 
-		{
-			static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar;
 
-			const ImGuiViewport* viewport = ImGui::GetMainViewport();
-			ImGui::SetNextWindowPos(viewport->Pos);
-			ImGui::SetNextWindowSize(viewport->Size);
+		static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar;
 
-			if (!ImGui::Begin("SmokeyStack's Bedrock Parser", NULL, flags)) {
-				ImGui::End();
-			}
-			if (ImGui::BeginMenuBar()) {
-				if (ImGui::BeginMenu("Examples")) {
-					ImGui::MenuItem("Property editor", NULL, &show_app_property_editor);
-					ImGui::MenuItem("Open...", NULL, &open_file_dialog);
-					ImGui::EndMenu();
-				}
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->Pos);
+		ImGui::SetNextWindowSize(viewport->Size);
 
-				ImGui::EndMenuBar();
-			}
-
-			static int grid_step = 256.0f;
-			static int what = 0;
-
-			if (ImGui::SliderInt("Chunk Size", &grid_step, 16, 256)) {
-				grid_step = (grid_step / 16) * 16;
-			}
-
-			ImGui::InputInt("What", &what);
-
-			static ImVec2 scrolling(0.0f, 0.0f);
-
-			// Using InvisibleButton() as a convenience 1) it will advance the layout cursor and 2) allows us to use IsItemHovered()/IsItemActive()
-			ImVec2 canvas_p0 = ImGui::GetCursorScreenPos();      // ImDrawList API uses screen coordinates!
-			ImVec2 canvas_sz = ImGui::GetContentRegionAvail();   // Resize canvas to what's available
-			if (canvas_sz.x < 50.0f) canvas_sz.x = 50.0f;
-			if (canvas_sz.y < 50.0f) canvas_sz.y = 50.0f;
-			ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
-
-			ImGuiIO& io = ImGui::GetIO();
-			ImDrawList* draw_list = ImGui::GetWindowDrawList();
-			draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(50, 50, 50, 255));
-			draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(255, 255, 255, 255));
-
-			// This will catch our interactions
-			ImGui::InvisibleButton("canvas", canvas_sz, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
-			const bool is_hovered = ImGui::IsItemHovered(); // Hovered
-			const bool is_active = ImGui::IsItemActive();   // Held
-			const ImVec2 origin(canvas_p0.x + scrolling.x, canvas_p0.y + scrolling.y); // Lock scrolled origin
-			const ImVec2 mouse_pos_in_canvas(io.MousePos.x - origin.x, io.MousePos.y - origin.y);
-
-			if (is_active && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
-				scrolling.x += io.MouseDelta.x;
-				scrolling.y += io.MouseDelta.y;
-			}
-
-			draw_list->PushClipRect(canvas_p0, canvas_p1, true);
-
-			for (float x = fmodf(scrolling.x, grid_step); x < canvas_sz.x; x += grid_step) {
-				for (float y = fmodf(scrolling.y, grid_step); y < canvas_sz.y; y += grid_step) {
-					draw_list->AddLine(ImVec2(canvas_p0.x + x, canvas_p0.y), ImVec2(canvas_p0.x + x, canvas_p1.y), IM_COL32(200, 200, 200, 1));
-					draw_list->AddLine(ImVec2(canvas_p0.x, canvas_p0.y + y), ImVec2(canvas_p1.x, canvas_p0.y + y), IM_COL32(200, 200, 200, 1));
-
-					for (int a = world->dimensions[0]->get_min_chunk_x(); a < world->dimensions[0]->get_max_chunk_x(); a++)
-						for (int b = world->dimensions[0]->get_min_chunk_z(); b < world->dimensions[0]->get_max_chunk_z(); b++)
-						{
-							//log::trace("Drawing Chunk ({}, {})", a, b);
-							world->dimensions[0]->DrawChunk(a, b, draw_list, origin, grid_step);
-						}
-				}
-			}
-
-			draw_list->PopClipRect();
-
+		if (!ImGui::Begin("SmokeyStack's Bedrock Parser", NULL, flags))
 			ImGui::End();
+
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("Examples")) {
+				ImGui::MenuItem("Property editor", NULL, &show_app_property_editor);
+				ImGui::MenuItem("Open...", NULL, &open_file_dialog);
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMenuBar();
 		}
+
+		ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+		glViewport(0, 0, 1080, 700);
+
+		if (ImGui::SliderInt("Chunk Size", &grid_step, 16, 256))
+			grid_step = (grid_step / 16) * 16;
+
+		ImGui::Text("Draw Calls: %i | Quad Count: %i | FPS: %.1f", Renderer::GetStats().draw_calls, Renderer::GetStats().quad_count, io.Framerate);
+
+		ImGui::End();
 
 		{
 			if (show_app_property_editor) {
@@ -273,22 +277,36 @@ int main(int argc, char** argv) {
 					log::error("Error: {}", NFD_GetError());
 				}
 			}
-
 		}
 
 		//ImGui::ShowDemoWindow();
 
 		// Rendering
 		ImGui::Render();
-
 		glClearColor(0.5, 0.5, 0.5, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		glm::mat4 model = glm::mat4(1.0f);
+		glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(-camera_position.x, -camera_position.y, 0.0f));
+		glm::mat4 projection = glm::ortho((-1080.0f / 2.0f), (1080.0f / 2.0f), (-700.0f / 2.0f), (700.0f / 2.0f), -1.0f, 1.0f);
+		glm::mat4 mvp = model * view * projection;
+		shader.SetMat4("mvp", mvp);
+
+		Renderer::ResetStats();
+
+		for (int x = world->dimensions[0]->get_min_chunk_x(); x < world->dimensions[0]->get_max_chunk_x(); x++) {
+			for (int z = world->dimensions[0]->get_min_chunk_z(); z < world->dimensions[0]->get_max_chunk_z(); z++) {
+				world->dimensions[0]->DrawChunk(x, z, grid_step);
+			}
+		}
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 
-	// Shutdown ImGui
+	Renderer::Shutdown();
+
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();

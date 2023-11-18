@@ -11,6 +11,7 @@
 #include "imgui/imgui.h"
 #include "logger.h"
 #include "minecraft/block.h"
+#include "renderer/renderer.h"
 #include "world/chunk.h"
 
 namespace smokey_bedrock_parser {
@@ -121,13 +122,14 @@ namespace smokey_bedrock_parser {
 			return true;
 		};
 
-		void DrawChunk(int chunk_x, int chunk_z, ImDrawList* draw_list, ImVec2 origin, int grid_step) {
+		void DrawChunk(int chunk_x, int chunk_z, int grid_step) {
 			if (DoesChunkExist(chunk_x, chunk_z)) {
 				ChunkKey key(chunk_x, chunk_z);
 				auto blocks = chunks[key]->blocks;
 				int offset_chunk_x = chunk_x * grid_step;
 				int offset_chunk_z = chunk_z * grid_step;
-				grid_step /= 16;
+
+				Renderer::BeginScene();
 
 				for (int x = 0; x < 16; x++)
 					for (int z = 0; z < 16; z++)
@@ -136,12 +138,15 @@ namespace smokey_bedrock_parser {
 							int g = std::get<1>(Block::Get(blocks[x][z])->color);
 							int b = std::get<2>(Block::Get(blocks[x][z])->color);
 
-							draw_list->AddRectFilled(
-								ImVec2((origin[0] + grid_step * x) + offset_chunk_x, (origin[1] + grid_step * z) + offset_chunk_z),
-								ImVec2((origin[0] + grid_step * (x + 1)) + offset_chunk_x, (origin[1] + grid_step * (z + 1)) + offset_chunk_z),
-								IM_COL32(r, g, b, 255)
+							Renderer::DrawQuad(
+								glm::vec2((x * grid_step / 16) + offset_chunk_x, (-z * grid_step / 16) + offset_chunk_z),
+								grid_step / 16,
+								glm::vec3(r / 255.0f, g / 255.0f, b / 255.0f)
 							);
 						}
+
+				Renderer::EndScene();
+				Renderer::Flush();
 			}
 		}
 	private:

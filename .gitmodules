@@ -10,3 +10,6 @@
 [submodule "third-party/leveldb"]
 	path = third-party/leveldb
 	url = https://github.com/google/leveldb
+[submodule "third-party/glm"]
+	path = third-party/glm
+	url = https://github.com/g-truc/glm

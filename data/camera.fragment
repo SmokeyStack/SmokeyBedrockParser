@@ -1,0 +1,15 @@
+#version 460 core
+in vec4 fColor;
+in vec2 fPosition;
+flat in int fGridStep;
+
+out vec4 FragColor;
+
+void main()
+{
+	int actualStep = fGridStep * 16;
+    if(mod(fPosition.x, actualStep) < 1 || mod(fPosition.y, actualStep) < 1 || mod(fPosition.x, actualStep) > actualStep - 1 || mod(fPosition.y, actualStep) > actualStep - 1)
+		FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+	else
+		FragColor = vec4(fColor.r, fColor.g, fColor.b, 1.0);
+}

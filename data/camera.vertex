@@ -1,0 +1,18 @@
+#version 460 core
+layout (location = 0) in vec4 aColor;
+layout (location = 1) in vec2 aPosition;
+layout (location = 2) in int aGridStep;
+
+out vec4 fColor;
+out vec2 fPosition;
+out int fGridStep;
+
+uniform mat4 mvp;
+
+void main()
+{
+    fColor = aColor;
+    fPosition = aPosition;
+    fGridStep = aGridStep;
+    gl_Position = mvp * vec4(aPosition, 0.0, 1.0);
+}
