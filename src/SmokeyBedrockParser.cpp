@@ -15,9 +15,8 @@
 
 #include "loader.h"
 #include "minecraft/block.h"
-#include "renderer/index_buffer.h"
+#include "renderer/renderer.h"
 #include "renderer/shader.h"
-#include "renderer/vertex_buffer.h"
 #include "world/world.h"
 
 
@@ -95,35 +94,29 @@ static void SetupImGuiConfigs(ImGuiIO& io) {
 	}
 }
 
-struct Vertex {
-	glm::vec2 position;
-	glm::vec4 color;
-	int grid_step;
-};
-
-static std::array<Vertex, 4> CreateQuads(float x, float y, glm::vec3 color, int step) {
-	Vertex v0;
-	v0.position = glm::vec2(x, y);
-	v0.color = glm::vec4(color, 1.0f);
-	v0.grid_step = step;
-
-	Vertex v1;
-	v1.position = glm::vec2(x + step, y);
-	v1.color = glm::vec4(color, 1.0f);
-	v1.grid_step = step;
-
-	Vertex v2;
-	v2.position = glm::vec2(x + step, y + step);
-	v2.color = glm::vec4(color, 1.0f);
-	v2.grid_step = step;
-
-	Vertex v3;
-	v3.position = glm::vec2(x, y + step);
-	v3.color = glm::vec4(color, 1.0f);
-	v3.grid_step = step;
-
-	return { v0,v1,v2,v3 };
-}
+//static std::array<Vertex, 4> CreateQuads(float x, float y, glm::vec3 color, int step) {
+//	Vertex v0;
+//	v0.position = glm::vec2(x, y);
+//	v0.color = glm::vec4(color, 1.0f);
+//	v0.grid_step = step;
+//
+//	Vertex v1;
+//	v1.position = glm::vec2(x + step, y);
+//	v1.color = glm::vec4(color, 1.0f);
+//	v1.grid_step = step;
+//
+//	Vertex v2;
+//	v2.position = glm::vec2(x + step, y + step);
+//	v2.color = glm::vec4(color, 1.0f);
+//	v2.grid_step = step;
+//
+//	Vertex v3;
+//	v3.position = glm::vec2(x, y + step);
+//	v3.color = glm::vec4(color, 1.0f);
+//	v3.grid_step = step;
+//
+//	return { v0,v1,v2,v3 };
+//}
 
 int main(int argc, char** argv) {
 	// Setup SmokeyBedrockParser
@@ -166,45 +159,13 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	glViewport(0, 0, 1080, 720);
-
 	glfwSwapInterval(1); // Enable vsync
 
 	// Setup Shader
 	Shader shader("data/camera.vertex", "data/camera.fragment");
+	shader.Bind();
 
-	const int max_blocks = 256;
-	const int max_index = 6 * max_blocks;
-	const int max_vertices = 4 * max_blocks;
-
-	uint32_t indices[max_index];
-	int offset = 0;
-
-	for (int a = 0; a < max_index; a += 6) {
-		indices[a] = offset;
-		indices[a + 1] = offset + 1;
-		indices[a + 2] = offset + 2;
-
-		indices[a + 3] = offset + 2;
-		indices[a + 4] = offset + 3;
-		indices[a + 5] = offset;
-		offset += 4;
-	}
-
-	uint32_t VAO;
-	glCreateVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
-
-	VertexBuffer vb(nullptr, sizeof(Vertex) * max_vertices);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, grid_step));
-	glEnableVertexAttribArray(2);
-
-	IndexBuffer ib(indices, sizeof(indices));
+	Renderer::Init();
 
 	glm::mat4 projection = glm::ortho((-1080.0f / 2.0f), (1080.0f / 2.0f), (-720.0f / 2.0f), (720.0f / 2.0f), -1.0f, 1.0f);
 	glm::vec3 translation(0.0f, 0.0f, 0.0f);
@@ -248,52 +209,38 @@ int main(int argc, char** argv) {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-#if true
-		{
-			static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar;
+		static int grid_step = 256.0f;
 
-			const ImGuiViewport* viewport = ImGui::GetMainViewport();
-			ImGui::SetNextWindowPos(viewport->Pos);
-			ImGui::SetNextWindowSize(viewport->Size);
 
-			if (!ImGui::Begin("SmokeyStack's Bedrock Parser", NULL, flags))
-				ImGui::End();
+		static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar;
 
-			if (ImGui::BeginMenuBar()) {
-				if (ImGui::BeginMenu("Examples")) {
-					ImGui::MenuItem("Property editor", NULL, &show_app_property_editor);
-					ImGui::MenuItem("Open...", NULL, &open_file_dialog);
-					ImGui::EndMenu();
-				}
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(viewport->Pos);
+		ImGui::SetNextWindowSize(viewport->Size);
 
-				ImGui::EndMenuBar();
-			}
-
-			ImVec2 canvas_size = ImGui::GetContentRegionAvail();
-			glm::mat4 projection = glm::ortho((-canvas_size.x / 2.0f), (canvas_size.x / 2.0f), (-canvas_size.y / 2.0f), (canvas_size.y / 2.0f), -1.0f, 1.0f);
-			static int grid_step = 256.0f;
-
-			if (ImGui::SliderInt("Chunk Size", &grid_step, 16, 256))
-				grid_step = (grid_step / 16) * 16;
-
-			ImGui::SameLine();
-			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
-			Vertex vertices[max_vertices];
-			size_t offset = 0;
-
-			for (int x = 0; x < 16; x++) {
-				for (int y = 0; y < 16; y++) {
-					auto quad = CreateQuads(x * grid_step / 16, y * grid_step / 16, glm::vec3(r, x / 32.0f, y / 32.0f), grid_step / 16);
-					memcpy(vertices + offset, quad.data(), sizeof(Vertex) * quad.size());
-					offset += quad.size();
-				}
-			}
-
-			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
-
+		if (!ImGui::Begin("SmokeyStack's Bedrock Parser", NULL, flags))
 			ImGui::End();
+
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("Examples")) {
+				ImGui::MenuItem("Property editor", NULL, &show_app_property_editor);
+				ImGui::MenuItem("Open...", NULL, &open_file_dialog);
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMenuBar();
 		}
+
+		ImVec2 canvas_size = ImGui::GetContentRegionAvail();
+		projection = glm::ortho((-canvas_size.x / 2.0f), (canvas_size.x / 2.0f), (-canvas_size.y / 2.0f), (canvas_size.y / 2.0f), -1.0f, 1.0f);
+		glViewport(0, 0, canvas_size.x, canvas_size.y);
+
+		if (ImGui::SliderInt("Chunk Size", &grid_step, 16, 256))
+			grid_step = (grid_step / 16) * 16;
+
+		ImGui::SliderFloat("Camera", &translation.y, -256, 256);
+		ImGui::End();
+
 
 		{
 			if (show_app_property_editor) {
@@ -331,45 +278,37 @@ int main(int argc, char** argv) {
 				}
 			}
 		}
-#endif
 
 		//ImGui::ShowDemoWindow();
 
 		// Rendering
 		ImGui::Render();
-
-		/*Vertex vertices[max_vertices];
-		size_t offset = 0;
-
-		for (int x = 0; x < 16; x++) {
-			for (int y = 0; y < 16; y++) {
-				auto quad = CreateQuads(x * 16.0f, y * 16.0f, glm::vec3(r, x / 32.0f, y / 32.0f), 16);
-				memcpy(vertices + offset, quad.data(), sizeof(Vertex) * quad.size());
-				offset += quad.size();
-			}
-		}
-
-		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);*/
 		glClearColor(0.5, 0.5, 0.5, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-		{
-			shader.Bind();
-			glm::mat4 model = glm::translate(glm::mat4(1.0f), -translation);
-			glm::mat4 mvp = projection * model;
-			shader.SetMat4("mvp", mvp);
+		//shader.Bind();
+		glm::mat4 model = glm::translate(glm::mat4(1.0f), -translation);
+		glm::mat4 mvp = projection * model;
+		shader.SetMat4("mvp", mvp);
 
-			glBindVertexArray(VAO);
-			ib.Bind();
-			glDrawElements(GL_TRIANGLES, ib.GetCount(), GL_UNSIGNED_INT, 0);
+		Renderer::ResetStats();
+		Renderer::BeginScene();
+
+		for (int x = 0; x < 16; x++) {
+			for (int y = 0; y < 16; y++) {
+				Renderer::DrawQuad(glm::vec2(x * grid_step / 16, y * grid_step / 16), grid_step / 16, glm::vec3(r, x / 32.0f, y / 32.0f));
+			}
 		}
 
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		Renderer::EndScene();
+		Renderer::Flush();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+
+	Renderer::Shutdown();
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
