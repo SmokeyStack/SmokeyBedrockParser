@@ -7,7 +7,8 @@ out vec4 FragColor;
 
 void main()
 {
-    if(fPosition.x < 1 || fPosition.y < 1 || fPosition.x > (fGridStep * 16) - 1 || fPosition.y > (fGridStep * 16) - 1)
+	int actualStep = fGridStep * 16;
+    if(mod(fPosition.x, actualStep) < 1 || mod(fPosition.y, actualStep) < 1 || mod(fPosition.x, actualStep) > actualStep - 1 || mod(fPosition.y, actualStep) > actualStep - 1)
 		FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 	else
 		FragColor = vec4(fColor.r, fColor.g, fColor.b, 1.0);

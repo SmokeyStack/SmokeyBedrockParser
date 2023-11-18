@@ -106,12 +106,12 @@ namespace smokey_bedrock_parser {
 		data.quad_buffer_ptr->grid_step = step;
 		data.quad_buffer_ptr++;
 
-		data.quad_buffer_ptr->position = glm::vec2(position.x + step, position.y + step);
+		data.quad_buffer_ptr->position = glm::vec2(position.x + step, position.y - step);
 		data.quad_buffer_ptr->color = glm::vec4(color, 1.0f);
 		data.quad_buffer_ptr->grid_step = step;
 		data.quad_buffer_ptr++;
 
-		data.quad_buffer_ptr->position = glm::vec2(position.x, position.y + step);
+		data.quad_buffer_ptr->position = glm::vec2(position.x, position.y - step);
 		data.quad_buffer_ptr->color = glm::vec4(color, 1.0f);
 		data.quad_buffer_ptr->grid_step = step;
 		data.quad_buffer_ptr++;

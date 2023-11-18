@@ -94,29 +94,28 @@ static void SetupImGuiConfigs(ImGuiIO& io) {
 	}
 }
 
-//static std::array<Vertex, 4> CreateQuads(float x, float y, glm::vec3 color, int step) {
-//	Vertex v0;
-//	v0.position = glm::vec2(x, y);
-//	v0.color = glm::vec4(color, 1.0f);
-//	v0.grid_step = step;
-//
-//	Vertex v1;
-//	v1.position = glm::vec2(x + step, y);
-//	v1.color = glm::vec4(color, 1.0f);
-//	v1.grid_step = step;
-//
-//	Vertex v2;
-//	v2.position = glm::vec2(x + step, y + step);
-//	v2.color = glm::vec4(color, 1.0f);
-//	v2.grid_step = step;
-//
-//	Vertex v3;
-//	v3.position = glm::vec2(x, y + step);
-//	v3.color = glm::vec4(color, 1.0f);
-//	v3.grid_step = step;
-//
-//	return { v0,v1,v2,v3 };
-//}
+
+glm::vec3 camera_position = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 translation(0.0f, 0.0f, 0.0f);
+glm::vec3 translation2(100.0f, 0.0f, 0.0f);
+
+float deltaTime = 0.0f;	// time between current frame and last frame
+float lastFrame = 0.0f;
+
+static void ProcessInput(GLFWwindow* window) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
+
+	float camera_speed = static_cast<float>(2.5 * deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera_position.y += camera_speed;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera_position.y -= camera_speed;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera_position.x -= camera_speed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera_position.x += camera_speed;
+}
 
 int main(int argc, char** argv) {
 	// Setup SmokeyBedrockParser
@@ -159,17 +158,13 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	glfwSwapInterval(1); // Enable vsync
+	glfwSwapInterval(0);
 
 	// Setup Shader
 	Shader shader("data/camera.vertex", "data/camera.fragment");
 	shader.Bind();
 
 	Renderer::Init();
-
-	glm::mat4 projection = glm::ortho((-1080.0f / 2.0f), (1080.0f / 2.0f), (-720.0f / 2.0f), (720.0f / 2.0f), -1.0f, 1.0f);
-	glm::vec3 translation(0.0f, 0.0f, 0.0f);
-	glm::vec3 translation2(100.0f, 0.0f, 0.0f);
 
 	float r = 0.0f;
 
@@ -205,6 +200,12 @@ int main(int argc, char** argv) {
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	while (!glfwWindowShouldClose(window)) {
+		float currentFrame = static_cast<float>(glfwGetTime());
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
+		ProcessInput(window);
+
 		// Start the Dear ImGui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -232,15 +233,14 @@ int main(int argc, char** argv) {
 		}
 
 		ImVec2 canvas_size = ImGui::GetContentRegionAvail();
-		projection = glm::ortho((-canvas_size.x / 2.0f), (canvas_size.x / 2.0f), (-canvas_size.y / 2.0f), (canvas_size.y / 2.0f), -1.0f, 1.0f);
-		glViewport(0, 0, canvas_size.x, canvas_size.y);
+		glViewport(0, 0, 1080, 700);
 
 		if (ImGui::SliderInt("Chunk Size", &grid_step, 16, 256))
 			grid_step = (grid_step / 16) * 16;
 
-		ImGui::SliderFloat("Camera", &translation.y, -256, 256);
-		ImGui::End();
+		ImGui::Text("Draw Calls: %i | Quad Count: %i | FPS: %.1f", Renderer::GetStats().draw_calls, Renderer::GetStats().quad_count, io.Framerate);
 
+		ImGui::End();
 
 		{
 			if (show_app_property_editor) {
@@ -287,22 +287,19 @@ int main(int argc, char** argv) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-		//shader.Bind();
-		glm::mat4 model = glm::translate(glm::mat4(1.0f), -translation);
-		glm::mat4 mvp = projection * model;
+		glm::mat4 model = glm::mat4(1.0f);
+		glm::mat4 view = glm::translate(glm::mat4(1.0f), glm::vec3(-camera_position.x, -camera_position.y, 0.0f));
+		glm::mat4 projection = glm::ortho((-1080.0f / 2.0f), (1080.0f / 2.0f), (-700.0f / 2.0f), (700.0f / 2.0f), -1.0f, 1.0f);
+		glm::mat4 mvp = model * view * projection;
 		shader.SetMat4("mvp", mvp);
 
 		Renderer::ResetStats();
-		Renderer::BeginScene();
 
-		for (int x = 0; x < 16; x++) {
-			for (int y = 0; y < 16; y++) {
-				Renderer::DrawQuad(glm::vec2(x * grid_step / 16, y * grid_step / 16), grid_step / 16, glm::vec3(r, x / 32.0f, y / 32.0f));
+		for (int x = world->dimensions[0]->get_min_chunk_x(); x < world->dimensions[0]->get_max_chunk_x(); x++) {
+			for (int z = world->dimensions[0]->get_min_chunk_z(); z < world->dimensions[0]->get_max_chunk_z(); z++) {
+				world->dimensions[0]->DrawChunk(x, z, grid_step);
 			}
 		}
-
-		Renderer::EndScene();
-		Renderer::Flush();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
