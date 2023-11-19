@@ -179,9 +179,6 @@ namespace smokey_bedrock_parser {
 				tag_list.push_back(reader.read_tag());
 			}
 			catch (const std::exception&) {
-				if (!stream.eof())
-					log::error("Failed to read tag");
-
 				done = true;
 			}
 		}

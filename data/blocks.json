@@ -1,5 +1,7 @@
 {
-  "CLAY": [],
+  "CLAY": [
+    "minecraft:clay"
+  ],
   "COLOR_BLACK": [],
   "COLOR_BLUE": [],
   "COLOR_BROWN": [],
@@ -15,13 +17,43 @@
   "COLOR_PURPLE": [],
   "COLOR_RED": [],
   "COLOR_YELLOW": [],
+  "CRIMSON_HYPHAE": [],
+  "CRIMSON_NYLIUM": [],
+  "CRIMSON_STEM": [],
   "DEEPSLATE": [
     "minecraft:reinforced_deepslate"
   ],
+  "DIAMOND": [],
   "DIRT": [
+    "minecraft:brown_mushroom_block",
+    "minecraft:cobblestone_wall",
+    "minecraft:dirt",
+    "minecraft:dirt_with_roots",
+    "minecraft:farmland",
+    "minecraft:granite‌",
+    "minecraft:granite_stairs",
+    "minecraft:grass_path",
+    "minecraft:hanging_roots",
+    "minecraft:jukebox",
+    "minecraft:jungle_door",
+    "minecraft:jungle_fence",
+    "minecraft:jungle_fence_gate",
     "minecraft:jungle_log",
-    "minecraft:dirt"
+    "minecraft:jungle_planks‌",
+    "minecraft:jungle_pressure_plate",
+    "minecraft:jungle_stairs",
+    "minecraft:jungle_standing_sign",
+    "minecraft:jungle_trapdoor",
+    "minecraft:jungle_wall_sign",
+    "minecraft:packed_mud",
+    "minecraft:polished_granite‌",
+    "minecraft:polished_granite_stairs",
+    "minecraft:stone_block_slab3",
+    "minecraft:stripped_jungle_log",
+    "minecraft:wood",
+    "minecraft:wooden_slab"
   ],
+  "EMERALD": [],
   "FIRE": [
     "minecraft:fire",
     "minecraft:flowing_lava",
@@ -29,6 +61,8 @@
     "minecraft:redstone_block",
     "minecraft:tnt"
   ],
+  "GLOW_LICHEN": [],
+  "GOLD": [],
   "GRASS": [
     "minecraft:grass",
     "minecraft:slime"
@@ -39,6 +73,7 @@
     "minecraft:ice",
     "minecraft:packed_ice"
   ],
+  "LAPIS": [],
   "METAL": [
     "minecraft:anvil",
     "minecraft:brewing_stand",
@@ -51,26 +86,33 @@
     "minecraft:lodestone",
     "minecraft:soul_lantern"
   ],
+  "NETHER": [],
   "NONE": [
     "minecraft:air",
     "minecraft:barrier",
     "minecraft:cherry_planks"
   ],
   "PLANT": [
+    "minecraft:big_dripleaf",
     "minecraft:double_plant",
+    "minecraft:flowering_azalea",
     "minecraft:leaves",
-    "minecraft:tallgrass",
-    "minecraft:sapling",
-    "minecraft:yellow_flower",
-    "minecraft:red_flower",
-    "minecraft:torchflower",
     "minecraft:pitcher_plant",
-    "minecraft:wither_rose",
-    "minecraft:wheat",
+    "minecraft:red_flower",
     "minecraft:reeds",
-    "minecraft:vine"
+    "minecraft:sapling",
+    "minecraft:small_dripleaf_block",
+    "minecraft:spore_blossom",
+    "minecraft:tallgrass",
+    "minecraft:torchflower",
+    "minecraft:vine",
+    "minecraft:wheat",
+    "minecraft:wither_rose",
+    "minecraft:yellow_flower"
   ],
+  "PODZOL": [],
   "QUARTZ": [],
+  "RAW_IRON": [],
   "SAND": [
     {
       "name": "minecraft:birch_log",
@@ -89,14 +131,54 @@
     "minecraft:stripped_birch_log",
     "minecraft:turtle_egg"
   ],
-  "SNOW": [],
+  "SNOW": [
+    "minecraft:powder_snow",
+    "minecraft:snow",
+    "minecraft:snow_layer",
+    "minecraft:white_carpet",
+    "minecraft:white_concrete",
+    "minecraft:white_concrete_powder",
+    "minecraft:white_glazed_terracotta",
+    "minecraft:white_shulker_box",
+    "minecraft:white_stained_glass",
+    "minecraft:white_wool"
+  ],
   "STONE": [
     "minecraft:stone",
     "minecraft:gravel",
     "minecraft:stonebrick",
-    "minecraft:stone_brick_stairs"
+    "minecraft:stone_brick_stairs",
+    "minecraft:andesite‌",
+    "minecraft:polished_andesite‌",
+    "minecraft:cobblestone",
+    "minecraft:bedrock"
   ],
-  "WATER": [],
+  "TERRACOTTA_BLACK": [],
+  "TERRACOTTA_BLUE": [],
+  "TERRACOTTA_BROWN": [],
+  "TERRACOTTA_CYAN": [],
+  "TERRACOTTA_GRAY": [],
+  "TERRACOTTA_GREEN": [],
+  "TERRACOTTA_LIGHT_BLUE": [],
+  "TERRACOTTA_LIGHT_GRAY": [],
+  "TERRACOTTA_LIGHT_GREEN": [],
+  "TERRACOTTA_MAGENTA": [],
+  "TERRACOTTA_ORANGE": [],
+  "TERRACOTTA_PINK": [],
+  "TERRACOTTA_PURPLE": [],
+  "TERRACOTTA_RED": [],
+  "TERRACOTTA_WHITE": [],
+  "TERRACOTTA_YELLOW": [],
+  "WARPED_HYPHAE": [],
+  "WARPED_NYLIUM": [],
+  "WARPED_STEM": [],
+  "WARPED_WART_BLOCK": [],
+  "WATER": [
+    "minecraft:bubble_column",
+    "minecraft:flowing_water",
+    "minecraft:seagrass",
+    "minecraft:water"
+  ],
   "WOOD": [
     "minecraft:oak_log"
   ],

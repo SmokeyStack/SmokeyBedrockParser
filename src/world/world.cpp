@@ -340,7 +340,7 @@ namespace smokey_bedrock_parser {
 			key_data = value.data();
 			record_count++;
 
-			if ((record_count % 100) == 0) {
+			if ((record_count % 10000) == 0) {
 				double percentage = (double)record_count / (double)total_record_count;
 				log::info("Processing records: {} / {} ({:.1f}%)", record_count, total_record_count, percentage * 100.0);
 			}
@@ -349,31 +349,51 @@ namespace smokey_bedrock_parser {
 				Sources for keys: https://minecraft.wiki/w/Bedrock_Edition_level_format
 				Sources for more NBT data: https://minecraft.wiki/w/Bedrock_Edition_level_format/Other_data_format
 			*/;
-			if (strncmp(key_name, "BiomeData", key_size) == 0) {
+			if (IsChunkKey({ key_name,key_size }).first) {
+				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
+				chunk_string = chunk_data.dimension_name + "-chunk: ";
+
+				sprintf(temp_string, "%d %d (type=0x%02x) (subtype=0x%02x) (size=%d)", chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_tag,
+					chunk_data.chunk_type_sub, (int32_t)value_size);
+
+				chunk_string += temp_string;
+				log::trace("{}", chunk_string);
+
+				switch (chunk_data.chunk_tag) {
+				case ChunkTag::SubChunkPrefix: {
+					if (key_data[0] != 0)
+						dimensions[chunk_data.chunk_dimension_id]->AddChunk(7, chunk_data.chunk_x, chunk_data.chunk_type_sub, chunk_data.chunk_z, key_data, value_size);
+				}
+											 break;
+				default:
+					break;
+				}
+			}
+			else if (strncmp(key_name, "BiomeData", key_size) == 0) {
 				log::info("Found key - BiomeData");
 
-				ParseNbt(key_data, int32_t(value_size), tag_list);
+				//ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "Overworld", key_size) == 0) {
 				log::info("Found key - Overworld");
 
-				ParseNbt(key_data, int32_t(value_size), tag_list);
+				//ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "~local_player", key_size) == 0) {
 				log::info("Found key - ~local_player");
 
-				ParseNbt(key_data, int32_t(value_size), tag_list);
+				//ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if ((key_size >= 7) && (strncmp(key_name, "player_", 7) == 0)) {
 				std::string player_remote_Id = std::string(&key_name[strlen("player_")], key_size - strlen("player_"));
 				log::info("Found key - player_{}", player_remote_Id);
 
-				ParseNbt(key_data, int32_t(key_data), tag_list);
+				//ParseNbt(key_data, int32_t(key_data), tag_list);
 			}
 			else if (strncmp(key_name, "game_flatworldlayers", key_size) == 0) {
 				log::info("Found key - game_flatworldlayers");
 
-				ParseNbt(key_data, int32_t(value_size), tag_list);
+				//ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "VILLAGE_", 8) == 0) {
 				log::info("Found key - Village-{}", key.ToString());
@@ -392,7 +412,7 @@ namespace smokey_bedrock_parser {
 			else if (strncmp(key_name, "AutonomousEntities", key_size) == 0) {
 				log::info("Found key - AutonomousEntities");
 
-				ParseNbt(key_data, int32_t(value_size), tag_list);
+				//ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
 			else if (strncmp(key_name, "digp", 4) == 0) {
 				for (uint32_t i = 0; i < value_size; i += 8)
@@ -401,29 +421,9 @@ namespace smokey_bedrock_parser {
 			else if (strncmp(key_name, "actorprefix", 11) == 0) {
 				log::info("Found key - actorprefix");
 
-				ParseNbt(key_data, int32_t(value_size), tag_list);
+				//ParseNbt(key_data, int32_t(value_size), tag_list);
 			}
-			else if (IsChunkKey({ key_name,key_size }).first) {
-				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
-				chunk_string = chunk_data.dimension_name + "-chunk: ";
-
-				sprintf(temp_string, "%d %d (type=0x%02x) (subtype=0x%02x) (size=%d)", chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_tag,
-					chunk_data.chunk_type_sub, (int32_t)value_size);
-
-				chunk_string += temp_string;
-				log::info("{}", chunk_string);
-
-				switch (chunk_data.chunk_tag) {
-				case ChunkTag::SubChunkPrefix: {
-					if (key_data[0] != 0)
-						dimensions[chunk_data.chunk_dimension_id]->AddChunk(7, chunk_data.chunk_x, chunk_data.chunk_type_sub, chunk_data.chunk_z, key_data, value_size);
-				}
-											 break;
-				default:
-					break;
-				}
-			}
-			else log::error("Unknown record - key_size={} value_size={}", key_size, value_size);
+			//else log::error("Unknown record - key_size={} value_size={}", key_size, value_size);
 		}
 
 		log::info("Read {} records", record_count);

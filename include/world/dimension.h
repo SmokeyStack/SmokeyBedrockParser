@@ -139,7 +139,7 @@ namespace smokey_bedrock_parser {
 							int b = std::get<2>(Block::Get(blocks[x][z])->color);
 
 							Renderer::DrawQuad(
-								glm::vec2((x * grid_step / 16) + offset_chunk_x, (-z * grid_step / 16) + offset_chunk_z),
+								glm::vec2((x * grid_step / 16) + offset_chunk_x, (-z * grid_step / 16) - offset_chunk_z),
 								grid_step / 16,
 								glm::vec3(r / 255.0f, g / 255.0f, b / 255.0f)
 							);

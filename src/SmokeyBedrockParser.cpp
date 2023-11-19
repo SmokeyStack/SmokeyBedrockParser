@@ -166,8 +166,6 @@ int main(int argc, char** argv) {
 
 	Renderer::Init();
 
-	float r = 0.0f;
-
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -223,9 +221,9 @@ int main(int argc, char** argv) {
 			ImGui::End();
 
 		if (ImGui::BeginMenuBar()) {
-			if (ImGui::BeginMenu("Examples")) {
-				ImGui::MenuItem("Property editor", NULL, &show_app_property_editor);
-				ImGui::MenuItem("Open...", NULL, &open_file_dialog);
+			if (ImGui::BeginMenu("Menu")) {
+				//ImGui::MenuItem("Property editor", NULL, &show_app_property_editor);
+				ImGui::MenuItem("Open World", NULL, &open_file_dialog);
 				ImGui::EndMenu();
 			}
 
@@ -279,8 +277,6 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		//ImGui::ShowDemoWindow();
-
 		// Rendering
 		ImGui::Render();
 		glClearColor(0.5, 0.5, 0.5, 1);
@@ -295,8 +291,13 @@ int main(int argc, char** argv) {
 
 		Renderer::ResetStats();
 
-		for (int x = world->dimensions[0]->get_min_chunk_x(); x < world->dimensions[0]->get_max_chunk_x(); x++) {
+		/*for (int x = world->dimensions[0]->get_min_chunk_x(); x < world->dimensions[0]->get_max_chunk_x(); x++) {
 			for (int z = world->dimensions[0]->get_min_chunk_z(); z < world->dimensions[0]->get_max_chunk_z(); z++) {
+				world->dimensions[0]->DrawChunk(x, z, grid_step);
+			}
+		}*/
+		for (int x = -5; x < 5; x++) {
+			for (int z = -5; z < 5; z++) {
 				world->dimensions[0]->DrawChunk(x, z, grid_step);
 			}
 		}
