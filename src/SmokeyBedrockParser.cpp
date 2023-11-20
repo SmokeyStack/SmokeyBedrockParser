@@ -260,8 +260,8 @@ int main(int argc, char** argv) {
 					world_path = selected_folder;
 					world->init(world_path);
 					world->OpenDB(world_path);
-					world->ParseDBKey(std::string("00000000000000002ffc"));
-					//world->ParseDB();
+					//world->ParseDBKey(std::string("00000000000000002ffc"));
+					world->ParseDB();
 					world->CloseDB();
 					log::info("Done.");
 					log::info("====================");

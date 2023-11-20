@@ -69,6 +69,66 @@ struct ChunkData {
 	std::string dimension_name;
 };
 
+template<>
+struct fmt::formatter<ChunkTag> : fmt::formatter<std::string>
+{
+	auto format(ChunkTag my, format_context& ctx) const -> decltype(ctx.out())
+	{
+		switch (my) {
+		case ChunkTag::Data3D:
+			return format_to(ctx.out(), "Data3D");
+		case ChunkTag::Version:
+			return format_to(ctx.out(), "Version");
+		case ChunkTag::Data2D:
+			return format_to(ctx.out(), "Data2D");
+		case ChunkTag::Data2DLegacy:
+			return format_to(ctx.out(), "Data2DLegacy");
+		case ChunkTag::SubChunkPrefix:
+			return format_to(ctx.out(), "SubChunkPrefix");
+		case ChunkTag::LegacyTerrain:
+			return format_to(ctx.out(), "LegacyTerrain");
+		case ChunkTag::BlockEntity:
+			return format_to(ctx.out(), "BlockEntity");
+		case ChunkTag::Entity:
+			return format_to(ctx.out(), "Entity");
+		case ChunkTag::PendingTicks:
+			return format_to(ctx.out(), "PendingTicks");
+		case ChunkTag::LegacyBlockExtraData:
+			return format_to(ctx.out(), "LegacyBlockExtraData");
+		case ChunkTag::BiomeState:
+			return format_to(ctx.out(), "BiomeState");
+		case ChunkTag::FinalizedState:
+			return format_to(ctx.out(), "FinalizedState");
+		case ChunkTag::ConversionData:
+			return format_to(ctx.out(), "ConversionData");
+		case ChunkTag::BorderBlocks:
+			return format_to(ctx.out(), "BorderBlocks");
+		case ChunkTag::HardcodedSpawners:
+			return format_to(ctx.out(), "HardcodedSpawners");
+		case ChunkTag::RandomTicks:
+			return format_to(ctx.out(), "RandomTicks");
+		case ChunkTag::CheckSums:
+			return format_to(ctx.out(), "CheckSums");
+		case ChunkTag::GenerationSeed:
+			return format_to(ctx.out(), "GenerationSeed");
+		case ChunkTag::GeneratedPreCavesAndCliffsBlending:
+			return format_to(ctx.out(), "GeneratedPreCavesAndCliffsBlending");
+		case ChunkTag::BlendingBiomeHeight:
+			return format_to(ctx.out(), "BlendingBiomeHeight");
+		case ChunkTag::MetaDataHash:
+			return format_to(ctx.out(), "MetaDataHash");
+		case ChunkTag::BlendingData:
+			return format_to(ctx.out(), "BlendingData");
+		case ChunkTag::ActorDigestVersion:
+			return format_to(ctx.out(), "ActorDigestVersion");
+		case ChunkTag::LegacyVersion:
+			return format_to(ctx.out(), "LegacyVersion");
+		default:
+			return format_to(ctx.out(), "Unknown");
+		}
+	}
+};
+
 static ChunkData ParseChunkKey(std::string_view key) {
 	ChunkData chunk_data;
 
@@ -277,20 +337,28 @@ namespace smokey_bedrock_parser {
 		return 0;
 	}
 
-	int MinecraftWorldLevelDB::ParseLevelFile(std::string file_name) {
-		FILE* file = fopen(file_name.c_str(), "rb");
+	int MinecraftWorldLevelDB::ParseLevelFile(std::string& file_name) {
+		std::ifstream file;
+		file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
-		if (!file) {
-			log::error("Failed to open input file (file name={} error={} ({}))", file_name, strerror(errno), errno);
+		try {
+			file.open(file_name, std::ios::binary);
+		}
+		catch (const std::exception& e) {
+			log::error("Failed to read levelfile - Error: {}", e.what());
 
 			return -1;
 		}
 
-		int32_t format_version;
-		int32_t buffer_length;
+		int32_t format_version, buffer_length;
 
-		fread(&format_version, sizeof(int32_t), 1, file);
-		fread(&buffer_length, sizeof(int32_t), 1, file);
+		try {
+			file.read((char*)&format_version, sizeof(int32_t));
+			file.read((char*)&buffer_length, sizeof(int32_t));
+		}
+		catch (const std::exception& e) {
+			log::error("Failed to read levelfile - Error: {}", e.what());
+		}
 
 		log::info("ParseLevelFile: name={} version={} length={}", file_name, format_version, buffer_length);
 		std::pair<int32_t, nlohmann::json> result;
@@ -298,8 +366,8 @@ namespace smokey_bedrock_parser {
 		if (buffer_length > 0) {
 			char* buffer = new char[buffer_length];
 
-			fread(buffer, 1, buffer_length, file);
-			fclose(file);
+			file.read(buffer, buffer_length);
+			file.close();
 
 			NbtTagList tag_list;
 
@@ -321,14 +389,12 @@ namespace smokey_bedrock_parser {
 
 			delete[] buffer;
 		}
-		else fclose(file);
+		else file.close();
 
 		return result.first;
 	}
 
 	int MinecraftWorldLevelDB::ParseDB() {
-		char temp_string[256];
-
 		CalculateTotalRecords();
 
 		log::info("Parsing all leveldb records");
@@ -340,7 +406,6 @@ namespace smokey_bedrock_parser {
 		size_t value_size;
 		const char* key_name;
 		const char* key_data;
-		std::string chunk_string;
 		std::vector<std::string> villages;
 		std::vector<uint64_t> actor_ids;
 		leveldb::Iterator* it = db->NewIterator(leveldb_read_options);
@@ -372,13 +437,7 @@ namespace smokey_bedrock_parser {
 			*/;
 			if (IsChunkKey({ key_name,key_size }).first) {
 				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
-				chunk_string = chunk_data.dimension_name + "-chunk: ";
-
-				sprintf(temp_string, "%d %d (type=0x%02x) (subtype=0x%02x) (size=%d)", chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_tag,
-					chunk_data.chunk_type_sub, (int32_t)value_size);
-
-				chunk_string += temp_string;
-				log::trace("{}", chunk_string);
+				log::info("{}-chunk: x:{} z:{} y:{} (type={})", chunk_data.dimension_name, chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_type_sub, chunk_data.chunk_tag);
 
 				switch (chunk_data.chunk_tag) {
 				case ChunkTag::SubChunkPrefix: {
@@ -514,12 +573,10 @@ namespace smokey_bedrock_parser {
 
 		db->Get(leveldb_read_options, leveldb::Slice(temp_str), &temp_data);
 
-		char temp_string[256];
 		leveldb::Slice key, value;
 		size_t key_size, value_size;
 		const char* key_name;
 		const char* key_data;
-		std::string chunk_string;
 
 		key = leveldb::Slice(temp_str);
 		key_size = (int)key.size();
@@ -530,14 +587,7 @@ namespace smokey_bedrock_parser {
 
 		if (IsChunkKey({ key_name,key_size }).first) {
 			ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
-			chunk_string = chunk_data.dimension_name + "-chunk: ";
-
-			sprintf(temp_string, "%d %d (type=0x%02x) (subtype=0x%02x) (size=%d)", chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_tag,
-				chunk_data.chunk_type_sub, (int32_t)value_size);
-
-			chunk_string += temp_string;
-			log::info("{}", chunk_string);
-			log::info("{}", chunk_data.chunk_type_sub);
+			log::info("{}-chunk: x:{} z:{} y:{} (type={})", chunk_data.dimension_name, chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_type_sub, chunk_data.chunk_tag);
 
 			switch (chunk_data.chunk_tag) {
 			case ChunkTag::SubChunkPrefix: {
@@ -549,6 +599,8 @@ namespace smokey_bedrock_parser {
 				break;
 			}
 		}
+
+		return 0;
 	}
 
 	std::unique_ptr<MinecraftWorldLevelDB> world;
