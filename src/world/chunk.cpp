@@ -10,7 +10,7 @@
 #include "nbt.h"
 
 // Thanks to the project bedrock-viz for this math logic
-int32_t
+static int32_t
 SetupBlockStorage(const char* buffer, int32_t& blocks_per_word, int32_t& bits_per_block, int32_t& block_offset,
 	int32_t& palette_offset) {
 	int32_t version = -1;
@@ -78,14 +78,14 @@ SetupBlockStorage(const char* buffer, int32_t& blocks_per_word, int32_t& bits_pe
 	return 0;
 }
 
-int32_t GetBitFromByte(const char* buffer, int32_t bit_number) {
+static int32_t GetBitFromByte(const char* buffer, int32_t bit_number) {
 	int byte_start = bit_number / 8;
 	int byte_offset = bit_number % 8;
 
 	return buffer[byte_start] & (1 << byte_offset);
 }
 
-int32_t GetBitsFromBytes8(const char* buffer, int32_t bit_start, int32_t bit_length)
+static int32_t GetBitsFromBytes8(const char* buffer, int32_t bit_start, int32_t bit_length)
 {
 	unsigned byte_start = bit_start / 8;
 	unsigned byte_offset = bit_start % 8;
@@ -98,7 +98,7 @@ int32_t GetBitsFromBytes8(const char* buffer, int32_t bit_start, int32_t bit_len
 	return value & mask;
 }
 
-int32_t GetBitsFromBytesLarge(const char* buffer, int32_t bit_start, int32_t bit_length)
+static int32_t GetBitsFromBytesLarge(const char* buffer, int32_t bit_start, int32_t bit_length)
 {
 	int32_t result = 0;
 
@@ -111,14 +111,14 @@ int32_t GetBitsFromBytesLarge(const char* buffer, int32_t bit_start, int32_t bit
 	return result;
 }
 
-int32_t GetBitsFromBytes(const char* buffer, int32_t bit_start, int32_t bit_length)
+static int32_t GetBitsFromBytes(const char* buffer, int32_t bit_start, int32_t bit_length)
 {
 	if (bit_length <= 8) return GetBitsFromBytes8(buffer, bit_start, bit_length);
 
 	return GetBitsFromBytesLarge(buffer, bit_start, bit_length);
 }
 
-int32_t GetBlockId(const char* palette, int blocks_per_word, int bits_per_block,
+static uint32_t GetBlockId(const char* palette, int blocks_per_word, int bits_per_block,
 	int32_t x, int32_t z, int32_t y) {
 	int block_position = (((x * 16) + z) * 16) + y;
 	int word_start = block_position / blocks_per_word;
@@ -129,7 +129,7 @@ int32_t GetBlockId(const char* palette, int blocks_per_word, int bits_per_block,
 }
 
 namespace smokey_bedrock_parser {
-	int32_t Chunk::ParseChunk(int32_t chunk_x, int32_t chunk_y, int32_t chunk_z, const char* buffer, size_t buffer_length,
+	int Chunk::ParseChunk(int32_t chunk_x, int32_t chunk_y, int32_t chunk_z, const char* buffer, size_t buffer_length,
 		int32_t dimension_id, const std::string& dimension_name) {
 		// https://gist.github.com/Tomcc/a96af509e275b1af483b25c543cfbf37
 		int32_t blocks_per_word = -1;
@@ -165,7 +165,7 @@ namespace smokey_bedrock_parser {
 			}
 		}
 
-		int32_t palette_id, palette_data;
+		uint32_t palette_id, palette_data;
 		std::string block_id;
 		for (int32_t y = 0; y < 16; y++) {
 			for (int32_t z = 0; z < 16; z++) {
@@ -184,9 +184,10 @@ namespace smokey_bedrock_parser {
 							top_blocks[x][z] = actual_y;
 						}
 					}
-
 				}
 			}
 		}
+
+		return 0;
 	}
 } // namespace smokey_bedrock_parser

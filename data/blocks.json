@@ -21,6 +21,9 @@
   "CRIMSON_NYLIUM": [],
   "CRIMSON_STEM": [],
   "DEEPSLATE": [
+    "minecraft:deepslate",
+    "minecraft:deepslate_copper_ore",
+    "minecraft:deepslate_redstone_ore",
     "minecraft:reinforced_deepslate"
   ],
   "DIAMOND": [],
@@ -144,14 +147,15 @@
     "minecraft:white_wool"
   ],
   "STONE": [
-    "minecraft:stone",
-    "minecraft:gravel",
-    "minecraft:stonebrick",
-    "minecraft:stone_brick_stairs",
     "minecraft:andesite‌",
-    "minecraft:polished_andesite‌",
+    "minecraft:bedrock",
     "minecraft:cobblestone",
-    "minecraft:bedrock"
+    "minecraft:copper_ore",
+    "minecraft:gravel",
+    "minecraft:polished_andesite‌",
+    "minecraft:stone",
+    "minecraft:stone_brick_stairs",
+    "minecraft:stonebrick"
   ],
   "TERRACOTTA_BLACK": [],
   "TERRACOTTA_BLUE": [],

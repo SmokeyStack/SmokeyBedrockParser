@@ -9,11 +9,11 @@
 #include "logger.h"
 #include "nbt.h"
 
-int8_t ParseInt8(const char* p, int32_t startByte) {
+static int8_t ParseInt8(const char* p, int32_t startByte) {
 	return (p[startByte] & 0xff);
 }
 
-int32_t ParseInt32(const char* p, int32_t startByte) {
+static int32_t ParseInt32(const char* p, int32_t startByte) {
 	int32_t ret;
 
 	memcpy(&ret, &p[startByte], 4);
@@ -21,7 +21,7 @@ int32_t ParseInt32(const char* p, int32_t startByte) {
 	return ret;
 }
 
-std::pair<bool, int32_t> IsChunkKey(std::string_view key) {
+static std::pair<bool, int32_t> IsChunkKey(std::string_view key) {
 	auto tag_test = [](char tag) {
 		return ((33 <= tag && tag <= 64) || tag == 118);
 		};
@@ -69,7 +69,7 @@ struct ChunkData {
 	std::string dimension_name;
 };
 
-ChunkData ParseChunkKey(std::string_view key) {
+static ChunkData ParseChunkKey(std::string_view key) {
 	ChunkData chunk_data;
 
 	chunk_data.chunk_x = key[0];
@@ -128,6 +128,27 @@ ChunkData ParseChunkKey(std::string_view key) {
 	}
 
 	return chunk_data;
+}
+
+static std::vector<char> HexToBytes(const std::string& hex) {
+	std::vector<char> bytes;
+
+	for (unsigned int i = 0; i < hex.length(); i += 2) {
+		std::string byteString = hex.substr(i, 2);
+		char byte = (char)strtol(byteString.c_str(), NULL, 16);
+		bytes.push_back(byte);
+	}
+
+	return bytes;
+}
+
+static std::string SliceToHexString(leveldb::Slice slice) {
+	std::stringstream ss;
+	ss << std::hex << std::setfill('0');
+	for (size_t a = 0; a < slice.size(); a++)
+		ss << std::setw(2)
+		<< static_cast<unsigned int>(static_cast<unsigned char>(slice[a]));
+	return ss.str();
 }
 
 namespace {
@@ -190,7 +211,7 @@ namespace smokey_bedrock_parser {
 		return 0;
 	}
 
-	int32_t MinecraftWorldLevelDB::OpenDB(std::string db_directory) {
+	int MinecraftWorldLevelDB::OpenDB(std::string db_directory) {
 		log::info("Open DB: directory={}", db_directory);
 		db_options = std::make_unique<leveldb::Options>();
 		leveldb::Status status = leveldb::DB::Open(*db_options, std::string(db_directory + "/db").c_str(), &db);
@@ -202,7 +223,7 @@ namespace smokey_bedrock_parser {
 		return 0;
 	}
 
-	int32_t MinecraftWorldLevelDB::CalculateTotalRecords() {
+	int MinecraftWorldLevelDB::CalculateTotalRecords() {
 		bool pass_flag = true;
 
 		for (int32_t i = 0; i < 3; i++)
@@ -479,6 +500,55 @@ namespace smokey_bedrock_parser {
 		*/
 
 		return 0;
+	}
+
+	int MinecraftWorldLevelDB::ParseDBKey(std::string& db_key) {
+		std::string temp_data;
+		std::vector<char> bytes = HexToBytes(db_key);
+		std::string temp_str(bytes.begin(), bytes.end());
+		int a = -4;
+
+		std::stringstream stream;
+		stream << std::setfill('0') << std::setw(sizeof(int) * 2) << std::hex << a;
+		log::info("DEBUG - {}", stream.str().substr(stream.str().size() - 2));
+
+		db->Get(leveldb_read_options, leveldb::Slice(temp_str), &temp_data);
+
+		char temp_string[256];
+		leveldb::Slice key, value;
+		size_t key_size, value_size;
+		const char* key_name;
+		const char* key_data;
+		std::string chunk_string;
+
+		key = leveldb::Slice(temp_str);
+		key_size = (int)key.size();
+		key_name = key.data();
+		value = leveldb::Slice(temp_data);
+		value_size = value.size();
+		key_data = value.data();
+
+		if (IsChunkKey({ key_name,key_size }).first) {
+			ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
+			chunk_string = chunk_data.dimension_name + "-chunk: ";
+
+			sprintf(temp_string, "%d %d (type=0x%02x) (subtype=0x%02x) (size=%d)", chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_tag,
+				chunk_data.chunk_type_sub, (int32_t)value_size);
+
+			chunk_string += temp_string;
+			log::info("{}", chunk_string);
+			log::info("{}", chunk_data.chunk_type_sub);
+
+			switch (chunk_data.chunk_tag) {
+			case ChunkTag::SubChunkPrefix: {
+				if (key_data[0] != 0)
+					dimensions[chunk_data.chunk_dimension_id]->AddChunk(7, chunk_data.chunk_x, chunk_data.chunk_type_sub, chunk_data.chunk_z, key_data, value_size);
+			}
+										 break;
+			default:
+				break;
+			}
+		}
 	}
 
 	std::unique_ptr<MinecraftWorldLevelDB> world;

@@ -208,7 +208,7 @@ int main(int argc, char** argv) {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-		static int grid_step = 256.0f;
+		static int grid_step = 256;
 
 
 		static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar;
@@ -260,7 +260,8 @@ int main(int argc, char** argv) {
 					world_path = selected_folder;
 					world->init(world_path);
 					world->OpenDB(world_path);
-					world->ParseDB();
+					world->ParseDBKey(std::string("00000000000000002ffc"));
+					//world->ParseDB();
 					world->CloseDB();
 					log::info("Done.");
 					log::info("====================");

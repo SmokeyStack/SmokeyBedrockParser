@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdio>
+#include <cstdint>
 #include <leveldb/db.h>
 
 #include "logger.h"
@@ -117,8 +117,9 @@ namespace smokey_bedrock_parser {
             return 0;
         }
 
-        int32_t ParseDB();
+        int ParseDB();
 
+        int ParseDBKey(std::string& db_key);
     private:
         leveldb::DB* db;
         std::unique_ptr<leveldb::Options> db_options;
