@@ -129,67 +129,6 @@ struct fmt::formatter<ChunkTag> : fmt::formatter<std::string>
 	}
 };
 
-static ChunkData ParseChunkKey(std::string_view key) {
-	ChunkData chunk_data;
-
-	chunk_data.chunk_x = key[0];
-	chunk_data.chunk_z = key[4];
-	chunk_data.chunk_type_sub = 0;
-
-	switch (key.size()) {
-	case 9: {
-		chunk_data.chunk_dimension_id = 0;
-		chunk_data.dimension_name = "overworld";
-		chunk_data.chunk_tag = (ChunkTag)key[8];
-	}
-		  break;
-	case 10: {
-		chunk_data.chunk_dimension_id = 0;
-		chunk_data.dimension_name = "overworld";
-		chunk_data.chunk_tag = (ChunkTag)key[8];
-		chunk_data.chunk_type_sub = key[9];
-	}
-		   break;
-	case 13: {
-		chunk_data.chunk_dimension_id = key[8];
-		chunk_data.dimension_name = "nether";
-		chunk_data.chunk_tag = (ChunkTag)key[12];
-
-		if (chunk_data.chunk_dimension_id == 0x32373639)
-			chunk_data.chunk_dimension_id = 2;
-
-		if (chunk_data.chunk_dimension_id == 0x33373639)
-			chunk_data.chunk_dimension_id = 1;
-
-		// check for new dim id's
-		if (chunk_data.chunk_dimension_id != 1 && chunk_data.chunk_dimension_id != 2)
-			smokey_bedrock_parser::log::warn("UNKNOWN -- Found new chunk dimension id=0x{:x} -- Did Bedrock finally get custom dimensions? Or did Mojang add a new dimension?", chunk_data.chunk_dimension_id);
-	}
-		   break;
-	case 14: {
-		chunk_data.chunk_dimension_id = key[8];
-		chunk_data.dimension_name = "nether";
-		chunk_data.chunk_tag = (ChunkTag)key[12];
-		chunk_data.chunk_type_sub = key[13];
-
-		if (chunk_data.chunk_dimension_id == 0x32373639)
-			chunk_data.chunk_dimension_id = 2;
-
-		if (chunk_data.chunk_dimension_id == 0x33373639)
-			chunk_data.chunk_dimension_id = 1;
-
-		// check for new dim id's
-		if (chunk_data.chunk_dimension_id != 1 && chunk_data.chunk_dimension_id != 2)
-			smokey_bedrock_parser::log::warn("UNKNOWN -- Found new chunk dimension id=0x{:x} -- Did Bedrock finally get custom dimensions? Or did Mojang add a new dimension?", chunk_data.chunk_dimension_id);
-	}
-		   break;
-	default:
-		break;
-	}
-
-	return chunk_data;
-}
-
 static std::vector<char> HexToBytes(const std::string& hex) {
 	std::vector<char> bytes;
 
@@ -338,10 +277,57 @@ namespace smokey_bedrock_parser {
 			key_data = value.data();
 
 			if (IsChunkKey({ key_name,key_size }).first) {
-				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
+				std::string_view chunk_data(key_name, key_size);
+				int chunk_dimension_id;
+				ChunkTag chunk_tag;
 
-				if (chunk_data.chunk_tag == ChunkTag::SubChunkPrefix)
-					dimensions[chunk_data.chunk_dimension_id]->AddToChunkBounds(chunk_data.chunk_x, chunk_data.chunk_z);
+				switch (chunk_data.size()) {
+				case 9:
+					chunk_dimension_id = 0;
+					chunk_tag = (ChunkTag)chunk_data[8];
+
+					break;
+				case 10:
+					chunk_dimension_id = 0;
+					chunk_tag = (ChunkTag)chunk_data[8];
+
+					break;
+				case 13:
+					chunk_dimension_id = chunk_data[8];
+					chunk_tag = (ChunkTag)chunk_data[12];
+
+					if (chunk_dimension_id == 0x32373639)
+						chunk_dimension_id = 2;
+
+					if (chunk_dimension_id == 0x33373639)
+						chunk_dimension_id = 1;
+
+					// check for new dim id's
+					if (chunk_dimension_id != 1 && chunk_dimension_id != 2)
+						log::warn("UNKNOWN -- Found new chunk dimension id=0x{:x} -- Did Bedrock finally get custom dimensions? Or did Mojang add a new dimension?", chunk_dimension_id);
+
+					break;
+				case 14:
+					chunk_dimension_id = chunk_data[8];
+					chunk_tag = (ChunkTag)chunk_data[12];
+
+					if (chunk_dimension_id == 0x32373639)
+						chunk_dimension_id = 2;
+
+					if (chunk_dimension_id == 0x33373639)
+						chunk_dimension_id = 1;
+
+					// check for new dim id's
+					if (chunk_dimension_id != 1 && chunk_dimension_id != 2)
+						log::warn("UNKNOWN -- Found new chunk dimension id=0x{:x} -- Did Bedrock finally get custom dimensions? Or did Mojang add a new dimension?", chunk_dimension_id);
+
+					break;
+				default:
+					break;
+				}
+
+				if (chunk_tag == ChunkTag::SubChunkPrefix)
+					dimensions[chunk_dimension_id]->AddToChunkBounds(chunk_data[0], chunk_data[4]);
 			}
 		}
 
@@ -460,18 +446,7 @@ namespace smokey_bedrock_parser {
 				Sources for more NBT data: https://minecraft.wiki/w/Bedrock_Edition_level_format/Other_data_format
 			*/;
 			if (IsChunkKey({ key_name,key_size }).first) {
-				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
-				log::info("{}-chunk: x:{} z:{} y:{} (type={})", chunk_data.dimension_name, chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_type_sub, chunk_data.chunk_tag);
-
-				switch (chunk_data.chunk_tag) {
-				case ChunkTag::SubChunkPrefix: {
-					if (key_data[0] != 0)
-						dimensions[chunk_data.chunk_dimension_id]->AddChunk(7, chunk_data.chunk_x, chunk_data.chunk_type_sub, chunk_data.chunk_z, key_data, value_size);
-				}
-											 break;
-				default:
-					break;
-				}
+				ParseChunkKey({ key_name, key_size }, key_data, value_size);
 			}
 			else if (strncmp(key_name, "BiomeData", key_size) == 0) {
 				log::info("Found key - BiomeData");
@@ -587,7 +562,7 @@ namespace smokey_bedrock_parser {
 
 	int MinecraftWorldLevelDB::ParseDBKey(int x, int z) {
 		std::string temp_data;
-		for (int y = -64; y < 320; y += 16){
+		for (int y = -64; y < 320; y += 16) {
 			std::vector<char> bytes = CoordsToDbKey(x, z, y);
 			std::string temp_str(bytes.begin(), bytes.end());
 
@@ -605,23 +580,82 @@ namespace smokey_bedrock_parser {
 			value_size = value.size();
 			key_data = value.data();
 
-			if (IsChunkKey({ key_name,key_size }).first) {
-				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
-				log::info("{}-chunk: x:{} z:{} y:{} (type={})", chunk_data.dimension_name, chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_type_sub, chunk_data.chunk_tag);
-
-				switch (chunk_data.chunk_tag) {
-				case ChunkTag::SubChunkPrefix: {
-					if (key_data[0] != 0)
-						dimensions[chunk_data.chunk_dimension_id]->AddChunk(7, chunk_data.chunk_x, chunk_data.chunk_type_sub, chunk_data.chunk_z, key_data, value_size);
-				}
-											 break;
-				default:
-					break;
-				}
-			}
+			if (IsChunkKey({ key_name,key_size }).first)
+				ParseChunkKey({ key_name, key_size }, key_data, value_size);
 		}
 
 		return 0;
+	}
+
+	void MinecraftWorldLevelDB::ParseChunkKey(std::string_view key, const char* data, size_t size) {
+		ChunkData chunk_data;
+
+		chunk_data.chunk_x = key[0];
+		chunk_data.chunk_z = key[4];
+		chunk_data.chunk_type_sub = 0;
+
+		switch (key.size()) {
+		case 9: {
+			chunk_data.chunk_dimension_id = 0;
+			chunk_data.dimension_name = "overworld";
+			chunk_data.chunk_tag = (ChunkTag)key[8];
+		}
+			  break;
+		case 10: {
+			chunk_data.chunk_dimension_id = 0;
+			chunk_data.dimension_name = "overworld";
+			chunk_data.chunk_tag = (ChunkTag)key[8];
+			chunk_data.chunk_type_sub = key[9];
+		}
+			   break;
+		case 13: {
+			chunk_data.chunk_dimension_id = key[8];
+			chunk_data.dimension_name = "nether";
+			chunk_data.chunk_tag = (ChunkTag)key[12];
+
+			if (chunk_data.chunk_dimension_id == 0x32373639)
+				chunk_data.chunk_dimension_id = 2;
+
+			if (chunk_data.chunk_dimension_id == 0x33373639)
+				chunk_data.chunk_dimension_id = 1;
+
+			// check for new dim id's
+			if (chunk_data.chunk_dimension_id != 1 && chunk_data.chunk_dimension_id != 2)
+				smokey_bedrock_parser::log::warn("UNKNOWN -- Found new chunk dimension id=0x{:x} -- Did Bedrock finally get custom dimensions? Or did Mojang add a new dimension?", chunk_data.chunk_dimension_id);
+		}
+			   break;
+		case 14: {
+			chunk_data.chunk_dimension_id = key[8];
+			chunk_data.dimension_name = "nether";
+			chunk_data.chunk_tag = (ChunkTag)key[12];
+			chunk_data.chunk_type_sub = key[13];
+
+			if (chunk_data.chunk_dimension_id == 0x32373639)
+				chunk_data.chunk_dimension_id = 2;
+
+			if (chunk_data.chunk_dimension_id == 0x33373639)
+				chunk_data.chunk_dimension_id = 1;
+
+			// check for new dim id's
+			if (chunk_data.chunk_dimension_id != 1 && chunk_data.chunk_dimension_id != 2)
+				smokey_bedrock_parser::log::warn("UNKNOWN -- Found new chunk dimension id=0x{:x} -- Did Bedrock finally get custom dimensions? Or did Mojang add a new dimension?", chunk_data.chunk_dimension_id);
+		}
+			   break;
+		default:
+			break;
+		}
+
+		log::info("{}-chunk: x:{} z:{} y:{} (type={})", chunk_data.dimension_name, chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_type_sub, chunk_data.chunk_tag);
+
+		switch (chunk_data.chunk_tag) {
+		case ChunkTag::SubChunkPrefix: {
+			if (data[0] != 0)
+				dimensions[chunk_data.chunk_dimension_id]->AddChunk(7, chunk_data.chunk_x, chunk_data.chunk_type_sub, chunk_data.chunk_z, data, size);
+		}
+									 break;
+		default:
+			break;
+		}
 	}
 
 	std::unique_ptr<MinecraftWorldLevelDB> world;
