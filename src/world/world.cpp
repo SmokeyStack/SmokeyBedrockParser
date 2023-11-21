@@ -61,11 +61,11 @@ enum class ChunkTag : char {
 };
 
 struct ChunkData {
-	int32_t chunk_x;
-	int32_t chunk_z;
-	int32_t chunk_dimension_id;
+	int chunk_x;
+	int chunk_z;
+	int chunk_dimension_id;
 	ChunkTag chunk_tag;
-	int32_t chunk_type_sub;
+	int chunk_type_sub;
 	std::string dimension_name;
 };
 
@@ -205,10 +205,34 @@ static std::vector<char> HexToBytes(const std::string& hex) {
 static std::string SliceToHexString(leveldb::Slice slice) {
 	std::stringstream ss;
 	ss << std::hex << std::setfill('0');
+
 	for (size_t a = 0; a < slice.size(); a++)
-		ss << std::setw(2)
-		<< static_cast<unsigned int>(static_cast<unsigned char>(slice[a]));
+		ss << std::setw(2) << static_cast<unsigned int>(static_cast<unsigned char>(slice[a]));
+
 	return ss.str();
+}
+
+static std::vector<char> CoordsToDbKey(int x, int z, int y) {
+	std::string temp_data;
+	uint32_t chunk_x = floor(x / 16.0f);
+	int chunk_z = floor(z / 16.0f);
+	uint32_t chunk_y = floor(y / 16.0f);
+
+	std::stringstream stream;
+	chunk_x = _byteswap_ulong(chunk_x);
+	chunk_z = _byteswap_ulong(chunk_z);
+	stream << std::setfill('0') << std::setw(sizeof(int) * 2) << std::hex << chunk_x;
+	temp_data += stream.str();
+	stream.str(std::string());
+	stream << std::setfill('0') << std::setw(sizeof(int) * 2) << std::hex << chunk_z;
+	temp_data += stream.str();
+	stream.str(std::string());
+	temp_data += "2f";
+	stream << std::setfill('0') << std::setw(sizeof(int) * 2) << std::hex << chunk_y;
+	temp_data += stream.str().substr(stream.str().size() - 2);
+	stream.str(std::string());
+
+	return HexToBytes(temp_data);
 }
 
 namespace {
@@ -561,42 +585,39 @@ namespace smokey_bedrock_parser {
 		return 0;
 	}
 
-	int MinecraftWorldLevelDB::ParseDBKey(std::string& db_key) {
+	int MinecraftWorldLevelDB::ParseDBKey(int x, int z) {
 		std::string temp_data;
-		std::vector<char> bytes = HexToBytes(db_key);
-		std::string temp_str(bytes.begin(), bytes.end());
-		int a = -4;
+		for (int y = -64; y < 320; y += 16){
+			std::vector<char> bytes = CoordsToDbKey(x, z, y);
+			std::string temp_str(bytes.begin(), bytes.end());
 
-		std::stringstream stream;
-		stream << std::setfill('0') << std::setw(sizeof(int) * 2) << std::hex << a;
-		log::info("DEBUG - {}", stream.str().substr(stream.str().size() - 2));
+			db->Get(leveldb_read_options, leveldb::Slice(temp_str), &temp_data);
 
-		db->Get(leveldb_read_options, leveldb::Slice(temp_str), &temp_data);
+			leveldb::Slice key, value;
+			size_t key_size, value_size;
+			const char* key_name;
+			const char* key_data;
 
-		leveldb::Slice key, value;
-		size_t key_size, value_size;
-		const char* key_name;
-		const char* key_data;
+			key = leveldb::Slice(temp_str);
+			key_size = (int)key.size();
+			key_name = key.data();
+			value = leveldb::Slice(temp_data);
+			value_size = value.size();
+			key_data = value.data();
 
-		key = leveldb::Slice(temp_str);
-		key_size = (int)key.size();
-		key_name = key.data();
-		value = leveldb::Slice(temp_data);
-		value_size = value.size();
-		key_data = value.data();
+			if (IsChunkKey({ key_name,key_size }).first) {
+				ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
+				log::info("{}-chunk: x:{} z:{} y:{} (type={})", chunk_data.dimension_name, chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_type_sub, chunk_data.chunk_tag);
 
-		if (IsChunkKey({ key_name,key_size }).first) {
-			ChunkData chunk_data = ParseChunkKey({ key_name, key_size });
-			log::info("{}-chunk: x:{} z:{} y:{} (type={})", chunk_data.dimension_name, chunk_data.chunk_x, chunk_data.chunk_z, chunk_data.chunk_type_sub, chunk_data.chunk_tag);
-
-			switch (chunk_data.chunk_tag) {
-			case ChunkTag::SubChunkPrefix: {
-				if (key_data[0] != 0)
-					dimensions[chunk_data.chunk_dimension_id]->AddChunk(7, chunk_data.chunk_x, chunk_data.chunk_type_sub, chunk_data.chunk_z, key_data, value_size);
-			}
-										 break;
-			default:
-				break;
+				switch (chunk_data.chunk_tag) {
+				case ChunkTag::SubChunkPrefix: {
+					if (key_data[0] != 0)
+						dimensions[chunk_data.chunk_dimension_id]->AddChunk(7, chunk_data.chunk_x, chunk_data.chunk_type_sub, chunk_data.chunk_z, key_data, value_size);
+				}
+											 break;
+				default:
+					break;
+				}
 			}
 		}
 

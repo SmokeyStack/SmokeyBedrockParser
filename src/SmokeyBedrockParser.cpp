@@ -260,8 +260,12 @@ int main(int argc, char** argv) {
 					world_path = selected_folder;
 					world->init(world_path);
 					world->OpenDB(world_path);
-					//world->ParseDBKey(std::string("00000000000000002ffc"));
-					world->ParseDB();
+					for (int x = -256; x < 256; x += 16) {
+						for (int z = -256; z < 256; z += 16) {
+							world->ParseDBKey(x, z);
+						}
+					}
+					//world->ParseDB();
 					world->CloseDB();
 					log::info("Done.");
 					log::info("====================");
@@ -297,8 +301,8 @@ int main(int argc, char** argv) {
 				world->dimensions[0]->DrawChunk(x, z, grid_step);
 			}
 		}*/
-		for (int x = -5; x < 5; x++) {
-			for (int z = -5; z < 5; z++) {
+		for (int x = -16; x < 16; x++) {
+			for (int z = -16; z < 16; z++) {
 				world->dimensions[0]->DrawChunk(x, z, grid_step);
 			}
 		}

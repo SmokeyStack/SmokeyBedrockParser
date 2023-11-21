@@ -119,7 +119,7 @@ namespace smokey_bedrock_parser {
 
 		int ParseDB();
 
-		int ParseDBKey(std::string& db_key);
+		int ParseDBKey(int x, int z);
 	private:
 		leveldb::DB* db;
 		std::unique_ptr<leveldb::Options> db_options;
