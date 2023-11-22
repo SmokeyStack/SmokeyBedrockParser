@@ -11,10 +11,6 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/modules")
-set(CMAKE_BUILD_TYPE_INIT "RelWithDebInfo")
-set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
-
 set(BIN_NAME SmokeyBedrockParser)
 set(LIB_NAME SmokeyBedrockParserLib)
 
@@ -66,9 +62,3 @@ target_link_libraries(${LIB_NAME}
 add_executable(${BIN_NAME} src/SmokeyBedrockParser.cpp)
 target_link_libraries(${BIN_NAME} PRIVATE ${LIB_NAME})
 target_include_directories(${BIN_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-
-
-if(VCPKG_APPLOCAL_DEPS AND VCPKG_TARGET_TRIPLET MATCHES "windows|uwp")
-  install(DIRECTORY $<TARGET_FILE_DIR:SmokeyBedrockParser>/
-    TYPE BIN FILES_MATCHING PATTERN "*.dll")
-endif()
