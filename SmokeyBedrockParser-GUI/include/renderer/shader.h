@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "logger.h"
+#include <SmokeyBedrockParser-Core/logger.h>
 
 namespace smokey_bedrock_parser {
     class Shader {

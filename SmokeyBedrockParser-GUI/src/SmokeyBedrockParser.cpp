@@ -13,11 +13,11 @@
 #include <leveldb/db.h>
 #include <nfd.h>
 
-#include "loader.h"
-#include "minecraft/block.h"
+#include <SmokeyBedrockParser-Core/loader.h>
+#include <SmokeyBedrockParser-Core/minecraft/block.h>
 #include "renderer/renderer.h"
 #include "renderer/shader.h"
-#include "world/world.h"
+#include <SmokeyBedrockParser-Core/world/world.h>
 
 
 static void GLFWErrorCallback(int error, const char* description) {
