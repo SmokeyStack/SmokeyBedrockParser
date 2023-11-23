@@ -1,9 +1,3 @@
-[submodule "third-party/glfw"]
-	path = third-party/glfw
-	url = https://github.com/glfw/glfw.git
-[submodule "third-party/glm"]
-	path = third-party/glm
-	url = https://github.com/g-truc/glm
 [submodule "SmokeyBedrockParser-Core/third-party/leveldb"]
 	path = SmokeyBedrockParser-Core/third-party/leveldb
 	url = https://github.com/google/leveldb
@@ -13,3 +7,9 @@
 [submodule "SmokeyBedrockParser-Core/third-party/spdlog"]
 	path = SmokeyBedrockParser-Core/third-party/spdlog
 	url = https://github.com/gabime/spdlog
+[submodule "SmokeyBedrockParser-GUI/third-party/glfw"]
+	path = SmokeyBedrockParser-GUI/third-party/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "SmokeyBedrockParser-GUI/third-party/glm"]
+	path = SmokeyBedrockParser-GUI/third-party/glm
+	url = https://github.com/g-truc/glm

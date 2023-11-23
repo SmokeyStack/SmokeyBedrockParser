@@ -1,44 +1,9 @@
 #include "nbt.h"
 
-#include <imgui/imgui.h>
 #include <tuple>
 
 #include "json.hpp"
 #include "logger.h"
-
-bool RenderKey(const std::string& name, const std::string& value, const char* type, bool arr) {
-	float px = ImGui::GetCursorPosX() + 18.0f;
-	/*static const char spaces[51] = {
-		"                                                 \0"
-	};
-	const char* spcptr = &(
-		spaces[50 - int(32.0f / (ImGui::CalcTextSize(" ").x))]
-		);*/
-	bool open = false;
-	bool show_tooltip = false;
-	if (arr) {
-		open = ImGui::TreeNodeEx(name.c_str(), 0);
-	}
-	else {
-		open = ImGui::TreeNodeEx(name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-	}
-	ImGui::SameLine(px);
-	show_tooltip = ImGui::IsItemHovered();
-	if (show_tooltip) {
-		ImGui::BeginTooltip();
-		ImGui::Text(name.c_str());
-		ImGui::SameLine();
-		ImGui::TextDisabled("%s", type);
-		ImGui::EndTooltip();
-	}
-
-	ImGui::NextColumn();
-	ImGui::PushID(name.c_str());
-	ImGui::Text(value.c_str());
-	ImGui::PopID();
-	ImGui::NextColumn();
-	return open;
-}
 
 namespace smokey_bedrock_parser {
 	int32_t global_nbt_list_number = 0;
@@ -58,48 +23,36 @@ namespace smokey_bedrock_parser {
 			nbt::tag_byte value = tag.second->as<nbt::tag_byte>();
 			log::trace("TAG_BYTE: {}", value.get());
 			json[tag.first] = value.get();
-
-			if (render) RenderKey(tag.first, json[tag.first].dump(), "byte", false);
 		}
 								break;
 		case nbt::tag_type::Short: {
 			nbt::tag_short value = tag.second->as<nbt::tag_short>();
 			log::trace("TAG_SHORT: {}", value.get());
 			json[tag.first] = value.get();
-
-			if (render) RenderKey(tag.first, json[tag.first].dump(), "short", false);
 		}
 								 break;
 		case nbt::tag_type::Int: {
 			nbt::tag_int value = tag.second->as<nbt::tag_int>();
 			log::trace("TAG_INT: {}", value.get());
 			json[tag.first] = value.get();
-
-			if (render) RenderKey(tag.first, json[tag.first].dump(), "int", false);
 		}
 							   break;
 		case nbt::tag_type::Long: {
 			nbt::tag_long value = tag.second->as<nbt::tag_long>();
 			log::trace("TAG_LONG: {}", value.get());
 			json[tag.first] = value.get();
-
-			if (render) RenderKey(tag.first, json[tag.first].dump(), "long", false);
 		}
 								break;
 		case nbt::tag_type::Float: {
 			nbt::tag_float value = tag.second->as<nbt::tag_float>();
 			log::trace("TAG_FLOAT: {}", value.get());
 			json[tag.first] = value.get();
-
-			if (render) RenderKey(tag.first, json[tag.first].dump(), "float", false);
 		}
 								 break;
 		case nbt::tag_type::Double: {
 			nbt::tag_double value = tag.second->as<nbt::tag_double>();
 			log::trace("TAG_DOUBLE: {}", value.get());
 			json[tag.first] = value.get();
-
-			if (render) RenderKey(tag.first, json[tag.first].dump(), "double", false);
 		}
 								  break;
 		case nbt::tag_type::Byte_Array:
@@ -108,8 +61,6 @@ namespace smokey_bedrock_parser {
 			nbt::tag_string value = tag.second->as<nbt::tag_string>();
 			log::trace("TAG_STRING: {}", value.get());
 			json[tag.first] = value.get();
-
-			if (render) RenderKey(tag.first, json[tag.first].dump(), "string", false);
 		}
 								  break;
 		case nbt::tag_type::List: {
@@ -121,14 +72,10 @@ namespace smokey_bedrock_parser {
 				for (const auto& nbt_tag : value)
 					json[tag.first].update(ParseNbtTag(std::make_pair(std::string(""), nbt_tag.get().clone())));
 			else {
-				bool need_open = RenderKey(tag.first, "entries", "compound", true);
 
-				if (need_open) {
 					for (const auto& nbt_tag : value)
 						json[tag.first].update(ParseNbtTag(std::make_pair(std::string(""), nbt_tag.get().clone())));
 
-					ImGui::TreePop();
-				}
 			}
 		}
 								break;
@@ -141,14 +88,10 @@ namespace smokey_bedrock_parser {
 				for (const auto& nbt_tag : value)
 					json[tag.first].update(ParseNbtTag(std::make_pair(nbt_tag.first, nbt_tag.second.get().clone())));
 			else {
-				bool need_open = RenderKey(tag.first, "entries", "compound", true);
 
-				if (need_open) {
 					for (const auto& nbt_tag : value)
 						json[tag.first].update(ParseNbtTag(std::make_pair(nbt_tag.first, nbt_tag.second.get().clone())));
 
-					ImGui::TreePop();
-				}
 			}
 		}
 									break;

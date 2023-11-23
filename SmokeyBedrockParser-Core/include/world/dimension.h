@@ -8,10 +8,8 @@
 #include <utility>
 #include <vector>
 
-#include "imgui/imgui.h"
 #include "logger.h"
 #include "minecraft/block.h"
-#include "renderer/renderer.h"
 #include "world/chunk.h"
 
 namespace smokey_bedrock_parser {
@@ -128,25 +126,6 @@ namespace smokey_bedrock_parser {
 				auto blocks = chunks[key]->blocks;
 				int offset_chunk_x = chunk_x * grid_step;
 				int offset_chunk_z = chunk_z * grid_step;
-
-				Renderer::BeginScene();
-
-				for (int x = 0; x < 16; x++)
-					for (int z = 0; z < 16; z++)
-						if ((Block::Get(blocks[x][z]) != nullptr)) {
-							int r = std::get<0>(Block::Get(blocks[x][z])->color);
-							int g = std::get<1>(Block::Get(blocks[x][z])->color);
-							int b = std::get<2>(Block::Get(blocks[x][z])->color);
-
-							Renderer::DrawQuad(
-								glm::vec2((x * grid_step / 16) + offset_chunk_x, (-z * grid_step / 16) - offset_chunk_z),
-								grid_step / 16,
-								glm::vec3(r / 255.0f, g / 255.0f, b / 255.0f)
-							);
-						}
-
-				Renderer::EndScene();
-				Renderer::Flush();
 			}
 		}
 	private:
