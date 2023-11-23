@@ -1,15 +1,15 @@
-[submodule "third-party/libnbtplusplus"]
-	path = third-party/libnbtplusplus
-	url = https://github.com/ljfa-ag/libnbtplusplus
-[submodule "third-party/spdlog"]
-	path = third-party/spdlog
-	url = https://github.com/gabime/spdlog
 [submodule "third-party/glfw"]
 	path = third-party/glfw
 	url = https://github.com/glfw/glfw.git
-[submodule "third-party/leveldb"]
-	path = third-party/leveldb
-	url = https://github.com/google/leveldb
 [submodule "third-party/glm"]
 	path = third-party/glm
 	url = https://github.com/g-truc/glm
+[submodule "SmokeyBedrockParser-Core/third-party/leveldb"]
+	path = SmokeyBedrockParser-Core/third-party/leveldb
+	url = https://github.com/google/leveldb
+[submodule "SmokeyBedrockParser-Core/third-party/libnbtplusplus"]
+	path = SmokeyBedrockParser-Core/third-party/libnbtplusplus
+	url = https://github.com/ljfa-ag/libnbtplusplus
+[submodule "SmokeyBedrockParser-Core/third-party/spdlog"]
+	path = SmokeyBedrockParser-Core/third-party/spdlog
+	url = https://github.com/gabime/spdlog
