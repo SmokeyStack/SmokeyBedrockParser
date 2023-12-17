@@ -303,7 +303,7 @@ int main(int argc, char** argv) {
 		}*/
 		for (int x = -16; x < 16; x++) {
 			for (int z = -16; z < 16; z++) {
-				world->dimensions[0]->DrawChunk(x, z, grid_step);
+				//world->dimensions[0]->DrawChunk(x, z, grid_step);
 			}
 		}
 

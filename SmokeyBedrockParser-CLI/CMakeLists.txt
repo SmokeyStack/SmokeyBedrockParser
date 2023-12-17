@@ -11,23 +11,19 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(BIN_NAME SmokeyBedrockParser-GUI)
-set(LIB_NAME SmokeyBedrockParserLib-GUI)
+set(BIN_NAME SmokeyBedrockParser-CLI)
+set(LIB_NAME SmokeyBedrockParserLib-CLI)
 
-project(SmokeyBedrockParser-GUI VERSION 0.1)
+project(SmokeyBedrockParser-CLI VERSION 0.1)
 
-find_package(OpenGL REQUIRED)
-find_package(unofficial-nativefiledialog CONFIG REQUIRED)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+find_package(Boost COMPONENTS program_options REQUIRED)
+include_directories(${Boost_INCLUDE_DIR})
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.c include/*cpp)
 file(GLOB_RECURSE HEADER_FILES include/*.h include/*.hpp)
 add_library(${LIB_NAME} STATIC ${SRC_FILES})
-file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 add_subdirectory(../SmokeyBedrockParser-Core SmokeyBedrockParser-Core)
-add_subdirectory(third-party/glfw)
-add_subdirectory(third-party/glm)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -36,7 +32,8 @@ endif()
 target_include_directories(${LIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_include_directories(${LIB_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(${LIB_NAME}
-  glfw glm OpenGL::GL unofficial::nativefiledialog::nfd SmokeyBedrockParser-Core
+  SmokeyBedrockParser-Core
+  ${Boost_LIBRARIES}
 )
 
 add_executable(${BIN_NAME} src/SmokeyBedrockParser.cpp)

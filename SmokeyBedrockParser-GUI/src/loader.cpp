@@ -84,7 +84,7 @@ int LoadBlocks(nlohmann::json json) {
 			if (color_map.find(key) != color_map.end())
 				color = color_map[key];
 
-			auto block = smokey_bedrock_parser::Block::Add(name, color);
+			auto block = smokey_bedrock_parser::Block::Add(name);
 		}
 	}
 

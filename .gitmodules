@@ -4,6 +4,6 @@
 [submodule "SmokeyBedrockParser-GUI/third-party/glm"]
 	path = SmokeyBedrockParser-GUI/third-party/glm
 	url = https://github.com/g-truc/glm
-[submodule "SmokeyBedrockParser-GUI/third-party/SmokeyBedrockParser-Core"]
-	path = SmokeyBedrockParser-GUI/third-party/SmokeyBedrockParser-Core
-	url = https://github.com/SmokeyStack/SmokeyBedrockParser-Core.git
+[submodule "SmokeyBedrockParser-Core"]
+	path = SmokeyBedrockParser-Core
+	url = https://github.com/SmokeyStack/SmokeyBedrockParser-Core
