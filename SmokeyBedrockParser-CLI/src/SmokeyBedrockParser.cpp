@@ -56,6 +56,13 @@ int main(int argc, char** argv) {
 				smokey_bedrock_parser::log::info(record);
 			smokey_bedrock_parser::log::info("---------");
 		}
+
+		smokey_bedrock_parser::world->ParseDBKey(0, 0);
+
+		auto res = smokey_bedrock_parser::world->dimensions[0]->GetChunk(0, 0, 2);
+		smokey_bedrock_parser::log::info(res.dump(4, ' ', false, nlohmann::detail::error_handler_t::ignore));
+		auto res2 = smokey_bedrock_parser::world->dimensions[0]->GetBlock(0, 66, 0);
+		smokey_bedrock_parser::log::info(res2);
 	}
 
 	if (vm.count("get")) {
