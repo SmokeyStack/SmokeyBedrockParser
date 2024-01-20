@@ -1,15 +1,15 @@
 #include <boost/program_options.hpp>
 #include <iostream>
+#include <SmokeyBedrockParser-Core/json/json.hpp>
 #include <SmokeyBedrockParser-Core/logger.h>
 #include <SmokeyBedrockParser-Core/world/world.h>
-#include <SmokeyBedrockParser-Core/json/json.hpp>
 
 int main(int argc, char** argv) {
 	if (argc < 2) {
 		smokey_bedrock_parser::log::error("No world path provided.");
 		return 1;
 	}
-
+	
 	smokey_bedrock_parser::SetupLoggerStage1();
 
 	auto console_log_level = smokey_bedrock_parser::Level::Info;

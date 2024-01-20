@@ -17,7 +17,6 @@ set(LIB_NAME SmokeyBedrockParserLib-CLI)
 project(SmokeyBedrockParser-CLI VERSION 0.1)
 
 find_package(Boost COMPONENTS program_options REQUIRED)
-include_directories(${Boost_INCLUDE_DIR})
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.c include/*cpp)
 file(GLOB_RECURSE HEADER_FILES include/*.h include/*.hpp)
